@@ -1,74 +1,93 @@
-# eSadabahar - Online Flower Shop
+# eSadabahar - Online Flower, Cake & Chocolate Shop
 
-An e-commerce platform for selling flowers, cakes, chocolates, and combos.
+A full-featured e-commerce website for selling flowers, cakes, chocolates, and combo packages with same-day delivery in Zirakpur.
 
 ## Features
 
-- User-friendly interface
+- Product browsing by categories (Bouquets, Cakes, Chocolates, Combos)
+- Shopping cart functionality
+- Checkout process with Razorpay payment integration
+- Order confirmation via email and WhatsApp
+- Admin dashboard for order management
 - Responsive design for all devices
-- Admin panel for order management
-- Email and WhatsApp notifications
-- Razorpay payment integration
-- Order tracking system
-- Time-based order confirmation (10:00 AM - 11:59 PM)
+
+## Tech Stack
+
+- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
+- **Backend**: Flask (Python)
+- **Database**: SQLite (SQLAlchemy ORM)
+- **Payment**: Razorpay
+- **Notifications**: Flask-Mail, Twilio (WhatsApp)
 
 ## Setup Instructions
 
-1. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+### Local Development
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/esadabahar.git
+   cd esadabahar
+   ```
 
-3. Set up environment variables:
-Create a `.env` file with the following variables:
-```
-FLASK_APP=app.py
-FLASK_ENV=development
-SECRET_KEY=your-secret-key
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-email-password
-RAZORPAY_KEY_ID=your-razorpay-key
-RAZORPAY_KEY_SECRET=your-razorpay-secret
-TWILIO_ACCOUNT_SID=your-twilio-sid
-TWILIO_AUTH_TOKEN=your-twilio-token
-```
+2. Create a virtual environment and activate it:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-4. Run the application:
-```bash
-flask run
-```
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 
-## Admin Panel
+4. Create a `.env` file with the following variables:
+   ```
+   SECRET_KEY=your_secret_key
+   RAZORPAY_KEY_ID=your_razorpay_key_id
+   RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+   MAIL_SERVER=your_smtp_server
+   MAIL_PORT=587
+   MAIL_USE_TLS=True
+   MAIL_USERNAME=your_email
+   MAIL_PASSWORD=your_email_password
+   TWILIO_ACCOUNT_SID=your_twilio_sid
+   TWILIO_AUTH_TOKEN=your_twilio_token
+   TWILIO_PHONE_NUMBER=your_twilio_phone
+   ```
 
-Access the admin panel at `/admin` with your credentials to:
-- View all orders
-- Track order status
-- Manage inventory
-- View revenue reports
+5. Run the application:
+   ```
+   python app.py
+   ```
 
-## Order Process
+6. Access the website at `http://127.0.0.1:5000`
 
-1. Users can place orders between 10:00 AM and 11:59 PM
-2. Orders require:
-   - Name
-   - Email
-   - Phone number
-   - Delivery address
-   - Pincode
-3. Payment processing through Razorpay
-4. Email and WhatsApp notifications for order confirmation and delivery
+### Deployment to Vercel
 
-## Note
+1. Install Vercel CLI:
+   ```
+   npm install -g vercel
+   ```
 
-- Cake designs may vary based on location
-- No refund policy for cancelled orders
-- Orders placed after 11:59 PM will be held for review 
+2. Login to Vercel:
+   ```
+   vercel login
+   ```
+
+3. Deploy the application:
+   ```
+   vercel
+   ```
+
+4. Set up environment variables in the Vercel dashboard.
+
+## Admin Access
+
+- URL: `/admin/login`
+- Default credentials:
+  - Username: admin
+  - Password: admin123
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details. 
