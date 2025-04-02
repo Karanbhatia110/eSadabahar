@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
@@ -175,7 +175,8 @@ def checkout():
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
-    return render_template('checkout.html', razorpay_key_id=os.getenv('RAZORPAY_KEY_ID'))
+    # For GET requests, serve the static HTML file
+    return send_file('templates/checkout.html')
 
 @app.route('/admin')
 @login_required
