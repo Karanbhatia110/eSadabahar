@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Checkout</h2>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Delivery Details</h5>
+                    <form id="checkout-form" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Delivery Address</label>
+                            <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pincode" class="form-label">Pincode</label>
+                            <input type="text" class="form-control" id="pincode" name="pincode" required>
+                        </div>
+                        <input type="hidden" id="total_amount" name="total_amount">
+                        <button type="submit" class="btn btn-primary">Place Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Order Summary</h5>
+                    <div id="order-summary">
+                        <!-- Order summary will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize cart from localStorage
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    updateOrderSummary();
+
+    function updateOrderSummary() {
+        const orderSummary = document.getElementById('order-summary');
+        let subtotal = 0;
+
+        if (cart.length === 0) {
+            orderSummary.innerHTML = '<p>Your cart is empty</p>';
+            return;
+        }
+
+        const itemsHtml = cart.map(item => {
+            subtotal += item.price * item.quantity;
+            return `
+                <div class="d-flex justify-content-between mb-2">
+                    <span>${item.name} x ${item.quantity}</span>
+                    <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+            `;
+        }).join('');
+
+        const deliveryFee = subtotal > 1000 ? 0 : 50;
+        const total = subtotal + deliveryFee;
+
+        orderSummary.innerHTML = `
+            ${itemsHtml}
+            <hr>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Subtotal:</span>
+                <span>₹${subtotal.toFixed(2)}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Delivery Fee:</span>
+                <span>₹${deliveryFee.toFixed(2)}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+                <strong>Total:</strong>
+                <strong>₹${total.toFixed(2)}</strong>
+            </div>
+        `;
+
+        document.getElementById('total_amount').value = total;
+    }
+
+    // Handle form submission
+    document.getElementById('checkout-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            address: formData.get('address'),
+            pincode: formData.get('pincode'),
+            total_amount: parseFloat(formData.get('total_amount')),
+            items: cart
+        };
+
+        // Send order to server
+        fetch('/checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Initialize Razorpay payment
+            const options = {
+                key: '{{ razorpay_key_id }}',  // Replace with your Razorpay key
+                amount: data.amount,
+                currency: data.currency,
+                order_id: data.order_id,
+                handler: function(response) {
+                    // Handle successful payment
+                    alert('Order placed successfully!');
+                    localStorage.removeItem('cart');
+                    window.location.href = '/';
+                },
+                prefill: {
+                    name: data.name,
+                    email: data.email,
+                    contact: data.phone
+                },
+                theme: {
+                    color: '#3399cc'
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while processing your order.');
+        });
+    });
+});
+</script>
+{% endblock %} 

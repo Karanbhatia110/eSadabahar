@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-center">
+    <div class="hero-overlay"></div>
+    <div class="container position-relative">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h1 class="display-4 text-white mb-4">Welcome to eSadabahar</h1>
+                <p class="lead text-white mb-4">Your one-stop shop for fresh flowers, cakes, chocolates, and more!</p>
+                <div class="alert alert-success d-inline-block mb-4">
+                    <i class="fas fa-truck"></i> Same Day Delivery Available!
+                </div>
+                <div>
+                    <a href="#products" class="btn btn-primary btn-lg">Shop Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Products Section -->
+<section id="products" class="product-section">
+    <div class="container">
+        <!-- Bouquets Section -->
+        <div id="bouquets" class="bouquets mb-5">
+            <h2 class="section-title animate-fade-in">Beautiful Bouquets</h2>
+            <div class="row g-4">
+                {% for product in products if product.category == 'bouquet' %}
+                <div class="col-md-4 col-lg-3 product-card-container animate-fade-in-up">
+                    <div class="product-card">
+                        <img src="https://ik.imagekit.io/flaberry/media/catalog/product/1/2/12-red-rose-bunch_fla296.jpg?tr=w-300" class="product-image" alt="{{ product.name }}">
+                        <div class="product-info">
+                            <h5 class="product-name">{{ product.name }}</h5>
+                            <p class="product-description">{{ product.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">₹{{ "%.2f"|format(product.price) }}</span>
+                                <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-price="{{ product.price }}">
+                                    <i class="fas fa-shopping-cart me-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if products|selectattr('category', 'equalto', 'bouquet')|list|length > 4 %}
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary show-more-btn" data-category="bouquets">Show More</button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Cakes Section -->
+        <div id="cakes" class="cakes mb-5">
+            <h2 class="section-title animate-fade-in">Delicious Cakes</h2>
+            <div class="row g-4">
+                {% for product in products if product.category in ['cake_500g', 'cake_1kg'] %}
+                <div class="col-md-4 col-lg-3 product-card-container animate-fade-in-up">
+                    <div class="product-card">
+                        <img src="https://placehold.co/400x300?text={{ product.name|urlencode }}" class="product-image" alt="{{ product.name }}">
+                        <div class="product-info">
+                            <h5 class="product-name">{{ product.name }}</h5>
+                            <p class="product-description">{{ product.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">₹{{ "%.2f"|format(product.price) }}</span>
+                                <button class="btn btn-sm btn-primary select-cake-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-price="{{ product.price }}">
+                                    <i class="fas fa-shopping-cart me-1"></i>Select
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if products|selectattr('category', 'in', ['cake_500g', 'cake_1kg'])|list|length > 4 %}
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary show-more-btn" data-category="cakes">Show More</button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Chocolates Section -->
+        <div id="chocolates" class="chocolates mb-5">
+            <h2 class="section-title animate-fade-in">Sweet Chocolates</h2>
+            <div class="row g-4">
+                {% for product in products if product.category == 'chocolate' %}
+                <div class="col-md-4 col-lg-3 product-card-container animate-fade-in-up">
+                    <div class="product-card">
+                        <img src="https://placehold.co/400x300?text={{ product.name|urlencode }}" class="product-image" alt="{{ product.name }}">
+                        <div class="product-info">
+                            <h5 class="product-name">{{ product.name }}</h5>
+                            <p class="product-description">{{ product.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">₹{{ "%.2f"|format(product.price) }}</span>
+                                <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-price="{{ product.price }}">
+                                    <i class="fas fa-shopping-cart me-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if products|selectattr('category', 'equalto', 'chocolate')|list|length > 4 %}
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary show-more-btn" data-category="chocolates">Show More</button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Combos Section -->
+        <div id="combos" class="combos mb-5">
+            <h2 class="section-title animate-fade-in">Special Combos</h2>
+            <div class="row g-4">
+                {% for product in products if product.category == 'combo' %}
+                <div class="col-md-4 col-lg-3 product-card-container animate-fade-in-up">
+                    <div class="product-card">
+                        <img src="https://placehold.co/400x300?text={{ product.name|urlencode }}" class="product-image" alt="{{ product.name }}">
+                        <div class="product-info">
+                            <h5 class="product-name">{{ product.name }}</h5>
+                            <p class="product-description">{{ product.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">₹{{ "%.2f"|format(product.price) }}</span>
+                                <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-price="{{ product.price }}">
+                                    <i class="fas fa-shopping-cart me-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if products|selectattr('category', 'equalto', 'combo')|list|length > 4 %}
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary show-more-btn" data-category="combos">Show More</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Cake Weight Selection Modal -->
+<div class="modal fade" id="cakeWeightModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Cake Weight</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Choose Weight:</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="cake-weight" id="weight-500g" value="500g" checked>
+                        <label class="btn btn-outline-primary" for="weight-500g">
+                            500g - ₹<span id="price-500g">0</span>
+                        </label>
+                        <input type="radio" class="btn-check" name="cake-weight" id="weight-1kg" value="1kg">
+                        <label class="btn btn-outline-primary" for="weight-1kg">
+                            1kg - ₹<span id="price-1kg">0</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="add-cake-to-cart">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="cartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-check-circle text-success me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Item added to cart successfully!
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize cart from localStorage
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    updateCartCount();
+
+    // Show only first 4 cards initially for each category
+    const categories = ['bouquets', 'cakes', 'chocolates', 'combos'];
+    categories.forEach(category => {
+        const cards = document.querySelectorAll(`#${category} .product-card-container`);
+        cards.forEach((card, index) => {
+            if (index >= 4) {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // Show More button functionality
+    document.querySelectorAll('.show-more-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const category = this.dataset.category;
+            const cards = document.querySelectorAll(`#${category} .product-card-container`);
+            cards.forEach((card, index) => {
+                if (index >= 4) {
+                    card.style.display = card.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+            this.textContent = this.textContent === 'Show More' ? 'Show Less' : 'Show More';
+        });
+    });
+
+    // Add to cart functionality for non-cake items
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = parseInt(this.dataset.productId);
+            const productName = this.dataset.productName;
+            const productPrice = parseFloat(this.dataset.productPrice);
+            addToCart(productId, productName, productPrice);
+        });
+    });
+
+    // Cake selection functionality
+    const cakeWeightModal = new bootstrap.Modal(document.getElementById('cakeWeightModal'));
+    let selectedCake = null;
+
+    document.querySelectorAll('.select-cake-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            selectedCake = {
+                id: parseInt(this.dataset.productId),
+                name: this.dataset.productName,
+                price: parseFloat(this.dataset.productPrice)
+            };
+            // Update prices in modal
+            document.getElementById('price-500g').textContent = selectedCake.price.toFixed(2);
+            document.getElementById('price-1kg').textContent = (selectedCake.price * 2).toFixed(2);
+            cakeWeightModal.show();
+        });
+    });
+
+    document.getElementById('add-cake-to-cart').addEventListener('click', function() {
+        const weight = document.querySelector('input[name="cake-weight"]:checked').value;
+        const cakeName = `${selectedCake.name} (${weight})`;
+        const priceMultiplier = weight === '1kg' ? 2 : 1;
+        addToCart(selectedCake.id, cakeName, selectedCake.price * priceMultiplier);
+        cakeWeightModal.hide();
+    });
+
+    function addToCart(productId, productName, productPrice) {
+        const existingItem = cart.find(item => item.id === productId);
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            cart.push({
+                id: productId,
+                name: productName,
+                price: productPrice,
+                quantity: 1
+            });
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartCount();
+        showToast();
+    }
+
+    function updateCartCount() {
+        const cartCount = document.getElementById('cart-count');
+        if (cartCount) {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            cartCount.textContent = totalItems;
+        }
+    }
+
+    function showToast() {
+        const toast = new bootstrap.Toast(document.getElementById('cartToast'));
+        toast.show();
+    }
+
+    // Update cart count when page loads
+    updateCartCount();
+});
+</script>
+{% endblock %} 
