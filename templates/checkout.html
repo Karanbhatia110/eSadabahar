@@ -174,9 +174,9 @@
                     order_id: data.order_id,
                     handler: function(response) {
                         // Handle successful payment
-                        alert('Order placed successfully!');
                         localStorage.removeItem('cart');
-                        window.location.href = '/';
+                        // Redirect to a confirmation page with order ID
+                        window.location.href = `/order-confirmed?order_id=${data.order_id}`;
                     },
                     prefill: {
                         name: data.name,

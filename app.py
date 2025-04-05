@@ -128,7 +128,7 @@ def checkout():
             email_body = f"""
             Dear {order.customer_name},
 
-            Thank you for your order! Your order has been received and is being processed.
+            Your payment has been successfully processed, and your order is now confirmed.
 
             Order Details:
             Order ID: {order.id}
@@ -136,7 +136,7 @@ def checkout():
             Delivery Address: {order.address}
             Pincode: {order.pincode}
 
-            We will send you another email once your order is shipped.
+            Thank you for shopping with us!
 
             Best regards,
             eSadabahar Team
@@ -164,8 +164,26 @@ def checkout():
             """
             send_whatsapp(order.phone, whatsapp_message)
 
+            # Send email to admin
+            admin_email_body = f"""
+            New Order Received:
+
+            Order Details:
+            Order ID: {order.id}
+            Customer Name: {order.customer_name}
+            Total Amount: ₹{order.total_amount}
+            Delivery Address: {order.address}
+            Pincode: {order.pincode}
+
+            Please process the order at your earliest convenience.
+
+            Best regards,
+            eSadabahar System
+            """
+            send_email('esadabaharorders@gmail.com', f'New Order from Order ID {order.id}', admin_email_body)
+
             return jsonify({
-                'order_id': razorpay_order['id'],
+                'order_id': order.id,
                 'amount': razorpay_order['amount'],
                 'currency': razorpay_order['currency'],
                 'name': order.customer_name,
@@ -221,9 +239,13 @@ def get_products():
     } for product in products])
 
 def send_email(to, subject, body):
-    msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[to])
-    msg.body = body
-    mail.send(msg)
+    try:
+        msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[to])
+        msg.body = body
+        mail.send(msg)
+        app.logger.info(f"Email sent to {to} with subject '{subject}'")
+    except Exception as e:
+        app.logger.error(f"Failed to send email to {to}: {str(e)}")
 
 def send_whatsapp(to, message):
     twilio_client.messages.create(
@@ -250,6 +272,25 @@ def verify_payment():
             order.payment_status = 'completed'
             order.status = 'processing'
             db.session.commit()
+            
+            # Send email confirmation
+            email_body = f"""
+            Dear {order.customer_name},
+
+            Your payment has been successfully processed, and your order is now confirmed.
+
+            Order Details:
+            Order ID: {order.id}
+            Total Amount: ₹{order.total_amount}
+            Delivery Address: {order.address}
+            Pincode: {order.pincode}
+
+            Thank you for shopping with us!
+
+            Best regards,
+            eSadabahar Team
+            """
+            send_email(order.email, 'Order Confirmation - eSadabahar', email_body)
         
         return jsonify({'success': True, 'message': 'Payment verified'})
         
@@ -288,6 +329,43 @@ def webhook():
     except Exception as e:
         app.logger.error(f"Webhook error: {str(e)}")
         return jsonify({'error': str(e)}), 400
+
+@app.route('/order-confirmed')
+def order_confirmed():
+    return send_file('templates/order-confirmed.html')
+
+@app.route('/test-email')
+def test_email():
+    try:
+        send_email('esadabaharindia@gmail.com', 'Test Email', 'This is a test email from eSadabahar.')
+        return 'Test email sent successfully! Check your inbox.', 200
+    except Exception as e:
+        return f'Failed to send test email: {str(e)}', 500
+
+@app.route('/request-refund', methods=['POST'])
+def request_refund():
+    try:
+        data = request.get_json()
+        order_id = data.get('order_id')
+        customer_name = data.get('customer_name')
+
+        # Send refund request email to admin
+        refund_email_body = f"""
+        Refund Request Received:
+
+        Customer Name: {customer_name}
+        Order ID: {order_id}
+
+        Please review the refund request at your earliest convenience.
+
+        Best regards,
+        eSadabahar System
+        """
+        send_email('esadabaharorders@gmail.com', f'Refund Request for Order ID {order_id}', refund_email_body)
+
+        return jsonify({'success': True, 'message': 'Refund request sent'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     with app.app_context():
