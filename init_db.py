@@ -315,8 +315,8 @@ def init_db():
         admin = User.query.filter_by(username='admin').first()
         if not admin:
             admin = User(
-                username='admin',
-                password='admin123',  # In production, use proper password hashing
+                username='karan',
+                password='9780444970?',  # In production, use proper password hashing
                 is_admin=True
             )
             db.session.add(admin)

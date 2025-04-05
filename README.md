@@ -43,7 +43,7 @@ A full-featured e-commerce website for selling flowers, cakes, chocolates, and c
 4. Create a `.env` file with the following variables:
    ```
    SECRET_KEY=your_secret_key
-   RAZORPAY_KEY_ID=your_razorpay_key_id
+   RAZORPAY_KEY_ID=rzp_test_6yTFmQVbKqK8yw
    RAZORPAY_KEY_SECRET=your_razorpay_key_secret
    MAIL_SERVER=your_smtp_server
    MAIL_PORT=587

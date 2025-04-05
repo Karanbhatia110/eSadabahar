@@ -75,7 +75,7 @@ function validateOrderTime() {
 // Razorpay Integration
 function initializeRazorpay(orderData) {
     const options = {
-        key: 'YOUR_RAZORPAY_KEY_ID',
+        key: 'rzp_test_6yTFmQVbKqK8yw',
         amount: orderData.amount,
         currency: orderData.currency,
         order_id: orderData.order_id,
@@ -96,29 +96,52 @@ function initializeRazorpay(orderData) {
     rzp.open();
 }
 
-function handlePaymentSuccess(response) {
-    // Send payment verification to server
-    fetch('/verify-payment', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(response)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Payment successful! Your order has been placed.');
-            localStorage.removeItem('cart');
-            window.location.href = '/';
-        } else {
-            showNotification('Payment verification failed. Please contact support.', 'danger');
+async function handlePaymentSuccess(response) {
+    try {
+        // Add order details to the verification request
+        const verificationData = {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            order_data: JSON.parse(localStorage.getItem('currentOrder')) // Store this during checkout
+        };
+
+        const result = await fetch('/verify-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken() // Add if using CSRF
+            },
+            body: JSON.stringify(verificationData)
+        });
+
+        if (!result.ok) {
+            throw new Error(await result.text());
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('An error occurred. Please try again.', 'danger');
-    });
+
+        const data = await result.json();
+        
+        if (data.success) {
+            // Clear cart only after successful verification
+            localStorage.removeItem('cart');
+            localStorage.removeItem('currentOrder');
+            
+            // Redirect with order ID for confirmation page
+            window.location.href = `/order-confirmed?order_id=${data.order_id}`;
+        } else {
+            showNotification(data.message || 'Payment verification failed', 'danger');
+            // Optionally reopen payment if verification fails
+            if (data.retry_allowed) {
+                initializeRazorpay(verificationData.order_data);
+            }
+        }
+    } catch (error) {
+        console.error('Payment verification error:', error);
+        showNotification('Payment processing failed. Please contact support with payment ID: ' + 
+                        response.razorpay_payment_id, 'danger');
+        // Log error to your error tracking system
+        logError(error);
+    }
 }
 
 // Form Validation

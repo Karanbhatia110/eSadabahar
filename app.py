@@ -189,12 +189,17 @@ def admin():
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user and user.password == request.form['password']:  # In production, use proper password hashing
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        user = User.query.filter_by(username=username).first()
+        if user and user.password == password:  # Use check_password_hash in production
             login_user(user)
-            return redirect(url_for('admin'))
-        flash('Invalid credentials')
-    return render_template('admin/login.html')
+            return jsonify({'success': True, 'redirect': '/admin'})
+        
+        return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+    
+    return render_template('admin/login.html')  # For GET requests
 
 @app.route('/admin/logout')
 @login_required
@@ -226,6 +231,63 @@ def send_whatsapp(to, message):
         body=message,
         to=f'whatsapp:{to}'
     )
+
+@app.route('/verify-payment', methods=['POST'])
+def verify_payment():
+    try:
+        data = request.get_json()
+        
+        # Verify payment signature
+        razorpay_client.utility.verify_payment_signature({
+            'razorpay_order_id': data['razorpay_order_id'],
+            'razorpay_payment_id': data['razorpay_payment_id'],
+            'razorpay_signature': data['razorpay_signature']
+        })
+        
+        # Update order status
+        order = Order.query.filter_by(id=data['order_id']).first()
+        if order:
+            order.payment_status = 'completed'
+            order.status = 'processing'
+            db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Payment verified'})
+        
+    except razorpay.errors.SignatureVerificationError:
+        return jsonify({'success': False, 'message': 'Invalid signature'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    try:
+        # Verify webhook signature
+        webhook_secret = os.getenv('RAZORPAY_WEBHOOK_SECRET')
+        received_signature = request.headers.get('X-Razorpay-Signature')
+        
+        razorpay_client.utility.verify_webhook_signature(
+            request.data.decode('utf-8'),
+            received_signature,
+            webhook_secret
+        )
+        
+        payload = request.get_json()
+        if payload['event'] == 'payment.captured':
+            payment = payload['payload']['payment']['entity']
+            order_id = payment['notes'].get('order_id') if payment.get('notes') else None
+            
+            if order_id:
+                order = Order.query.get(order_id)
+                if order:
+                    order.payment_status = 'completed'
+                    order.status = 'processing'
+                    db.session.commit()
+        
+        return jsonify({'status': 'success'}), 200
+        
+    except Exception as e:
+        app.logger.error(f"Webhook error: {str(e)}")
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     with app.app_context():
@@ -273,5 +335,9 @@ if __name__ == '__main__':
             
             db.session.commit()
             print("Sample products added to the database.")
+
+
+
+
     
     app.run(debug=True) 
