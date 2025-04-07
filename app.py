@@ -1,13 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from datetime import datetime
+from datetime import datetime, timedelta
 import razorpay
 import os
 from dotenv import load_dotenv
 import requests
 from twilio.rest import Client
+from werkzeug.security import generate_password_hash, check_password_hash
+import time
+import pytz
 
 # Load environment variables
 load_dotenv()
@@ -15,15 +18,22 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///eSadabahar.db'
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
-app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
-app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS') == 'True'
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_MAX_EMAILS'] = 10  # Limit number of emails per connection
+app.config['MAIL_ASCII_ATTACHMENTS'] = False
+app.config['MAIL_DEBUG'] = True  # Enable debug mode for development
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout
 
 # Initialize extensions
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
+login_manager.login_view = 'admin_login'
+login_manager.login_message = 'Please log in to access this page.'
 mail = Mail(app)
 
 # Razorpay client
@@ -37,12 +47,21 @@ twilio_client = Client(
     os.getenv('TWILIO_AUTH_TOKEN')
 )
 
+# Set the timezone to IST
+ist = pytz.timezone('Asia/Kolkata')
+
 # Models
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,7 +83,7 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='pending')
     payment_status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(ist))
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):
@@ -73,6 +92,7 @@ class OrderItem(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False)
+    product = db.relationship('Product', backref='order_items', lazy=True)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -90,111 +110,66 @@ def cart():
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    if request.method == 'POST':
-        try:
-            data = request.get_json()
+    try:
+        if request.method == 'GET':
+            return render_template('checkout.html')
             
-            # Create order
-            order = Order(
-                customer_name=data['name'],
-                email=data['email'],
-                phone=data['phone'],
-                address=data['address'],
-                pincode=data['pincode'],
-                total_amount=float(data['total_amount'])
-            )
-            db.session.add(order)
-            db.session.commit()
-
-            # Add order items
-            for item in data['items']:
-                order_item = OrderItem(
-                    order_id=order.id,
-                    product_id=item['id'],
-                    quantity=item['quantity'],
-                    price=item['price']
-                )
-                db.session.add(order_item)
-            db.session.commit()
-
-            # Create Razorpay order
-            razorpay_order = razorpay_client.order.create({
-                'amount': int(order.total_amount * 100),  # Amount in paise
-                'currency': 'INR',
-                'receipt': f'order_{order.id}'
-            })
-
-            # Send email confirmation
-            email_body = f"""
-            Dear {order.customer_name},
-
-            Your payment has been successfully processed, and your order is now confirmed.
-
-            Order Details:
-            Order ID: {order.id}
-            Total Amount: ₹{order.total_amount}
-            Delivery Address: {order.address}
-            Pincode: {order.pincode}
-
-            Thank you for shopping with us!
-
-            Best regards,
-            eSadabahar Team
-            """
-            send_email(order.email, 'Order Confirmation - eSadabahar', email_body)
-
-            # Send WhatsApp notification
-            whatsapp_message = f"""
-            🎉 Order Confirmation 🎉
-
-            Dear {order.customer_name},
-
-            Thank you for your order! Your order has been received and is being processed.
-
-            Order Details:
-            Order ID: {order.id}
-            Total Amount: ₹{order.total_amount}
-            Delivery Address: {order.address}
-            Pincode: {order.pincode}
-
-            We will keep you updated on your order status.
-
-            Best regards,
-            eSadabahar Team
-            """
-            send_whatsapp(order.phone, whatsapp_message)
-
-            # Send email to admin
-            admin_email_body = f"""
-            New Order Received:
-
-            Order Details:
-            Order ID: {order.id}
-            Customer Name: {order.customer_name}
-            Total Amount: ₹{order.total_amount}
-            Delivery Address: {order.address}
-            Pincode: {order.pincode}
-
-            Please process the order at your earliest convenience.
-
-            Best regards,
-            eSadabahar System
-            """
-            send_email('esadabaharorders@gmail.com', f'New Order from Order ID {order.id}', admin_email_body)
-
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            # Convert amount to float if it's a string
+            if 'total_amount' in data:
+                data['amount'] = float(data['total_amount'])
+        
+        # Validate required fields
+        required_fields = ['name', 'email', 'phone', 'address', 'pincode', 'amount']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
             return jsonify({
-                'order_id': order.id,
-                'amount': razorpay_order['amount'],
-                'currency': razorpay_order['currency'],
-                'name': order.customer_name,
-                'email': order.email,
-                'phone': order.phone
-            })
-        except Exception as e:
-            return jsonify({'error': str(e)}), 400
+                'success': False,
+                'message': f'Missing required fields: {", ".join(missing_fields)}'
+            }), 400
+        
+        # Create order in database
+        order = Order(
+            customer_name=data['name'],
+            email=data['email'],
+            phone=data['phone'],
+            address=data['address'],
+            pincode=data['pincode'],
+            total_amount=float(data['amount']),
+            status='pending',
+            payment_status='pending'
+        )
+        db.session.add(order)
+        db.session.commit()
 
-    # For GET requests, serve the static HTML file
-    return send_file('templates/checkout.html')
+        # Create Razorpay order
+        razorpay_order = razorpay_client.order.create({
+            'amount': int(float(data['amount']) * 100),  # Convert to paise
+            'currency': 'INR',
+            'receipt': f'order_{order.id}',
+            'notes': {
+                'order_id': order.id
+            }
+        })
+
+        return jsonify({
+            'success': True,
+            'order_id': order.id,
+            'razorpay_order_id': razorpay_order['id'],
+            'amount': razorpay_order['amount'],
+            'currency': razorpay_order['currency'],
+            'name': order.customer_name,
+            'email': order.email,
+            'phone': order.phone,
+            'razorpay_key': os.getenv('RAZORPAY_KEY_ID')
+        })
+
+    except Exception as e:
+        app.logger.error(f"Checkout error: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/admin')
 @login_required
@@ -202,22 +177,62 @@ def admin():
     if not current_user.is_admin:
         return redirect(url_for('home'))
     orders = Order.query.order_by(Order.created_at.desc()).all()
+    # Convert order creation time to IST for display
+    for order in orders:
+        order.created_at = order.created_at.astimezone(ist)
     return render_template('admin/dashboard.html', orders=orders)
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        if user and user.password == password:  # Use check_password_hash in production
+        try:
+            username = request.form.get('username')
+            password = request.form.get('password')
+            
+            if not username or not password:
+                return jsonify({
+                    'success': False,
+                    'message': 'Username and password are required'
+                }), 400
+            
+            # Get user from database
+            user = User.query.filter_by(username=username).first()
+            
+            if not user:
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid username or password'
+                }), 401
+            
+            # Check password and admin status
+            if not user.check_password(password):
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid username or password'
+                }), 401
+            
+            if not user.is_admin:
+                return jsonify({
+                    'success': False,
+                    'message': 'Access denied. Admin privileges required.'
+                }), 403
+            
+            # Login successful
             login_user(user)
-            return jsonify({'success': True, 'redirect': '/admin'})
-        
-        return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+            return jsonify({
+                'success': True,
+                'redirect': url_for('admin')
+            })
+            
+        except Exception as e:
+            app.logger.error(f'Login error: {str(e)}')
+            db.session.rollback()  # Rollback any failed transaction
+            return jsonify({
+                'success': False,
+                'message': f'An error occurred during login: {str(e)}'
+            }), 500
     
-    return render_template('admin/login.html')  # For GET requests
+    return render_template('admin/login.html')
 
 @app.route('/admin/logout')
 @login_required
@@ -238,14 +253,105 @@ def get_products():
         'stock': product.stock
     } for product in products])
 
-def send_email(to, subject, body):
-    try:
-        msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[to])
-        msg.body = body
-        mail.send(msg)
-        app.logger.info(f"Email sent to {to} with subject '{subject}'")
-    except Exception as e:
-        app.logger.error(f"Failed to send email to {to}: {str(e)}")
+def get_email_template(template_name, **kwargs):
+    templates = {
+        'order_confirmation': """
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #4a90e2;">Order Confirmation - eSadabahar</h2>
+                    <p>Dear {customer_name},</p>
+                    <p>Thank you for your order! Your order has been received and is being processed.</p>
+                    
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <h3 style="color: #4a90e2;">Order Details:</h3>
+                        <p><strong>Order ID:</strong> {order_id}</p>
+                        <p><strong>Total Amount:</strong> ₹{total_amount}</p>
+                        <p><strong>Delivery Address:</strong> {address}</p>
+                        <p><strong>Pincode:</strong> {pincode}</p>
+                    </div>
+                    
+                    <p>We will keep you updated on your order status.</p>
+                    <p>Best regards,<br>eSadabahar Team</p>
+                </div>
+            </body>
+        </html>
+        """,
+        'order_cancellation': """
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #e24a4a;">Order Cancelled - eSadabahar</h2>
+                    <p>Dear {customer_name},</p>
+                    <p>Your order #{order_id} has been cancelled.</p>
+                    
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <h3 style="color: #e24a4a;">Order Details:</h3>
+                        <p><strong>Products:</strong> {products}</p>
+                        <p><strong>Total Amount:</strong> ₹{total_amount}</p>
+                        <p><strong>Delivery Address:</strong> {address}</p>
+                        <p><strong>Pincode:</strong> {pincode}</p>
+                    </div>
+                    
+                    <p>If you have any questions, please contact us.</p>
+                    <p>Best regards,<br>eSadabahar Team</p>
+                </div>
+            </body>
+        </html>
+        """
+    }
+    return templates.get(template_name, '').format(**kwargs)
+
+def send_email(to, subject, body, html=None):
+    """
+    Send an email with retry mechanism and detailed logging.
+    
+    Args:
+        to (str): Recipient email address
+        subject (str): Email subject
+        body (str): Email body text
+        html (str, optional): HTML content for the email
+    
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
+    # Validate email configuration
+    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
+        app.logger.error("Email configuration is incomplete. MAIL_USERNAME and MAIL_PASSWORD must be set.")
+        return False
+    
+    for attempt in range(max_retries):
+        try:
+            msg = Message(
+                subject=subject,
+                recipients=[to],
+                body=body,
+                html=html,
+                sender=app.config['MAIL_DEFAULT_SENDER']
+            )
+            
+            app.logger.info(f"Attempting to send email to {to} (attempt {attempt + 1}/{max_retries})")
+            mail.send(msg)
+            
+            app.logger.info(f"Email sent successfully to {to}")
+            app.logger.debug(f"Email details - Subject: {subject}, Recipient: {to}")
+            return True
+            
+        except Exception as e:
+            error_msg = f"Failed to send email to {to} (attempt {attempt + 1}/{max_retries}): {str(e)}"
+            app.logger.error(error_msg)
+            
+            if attempt < max_retries - 1:
+                app.logger.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                app.logger.error(f"All {max_retries} attempts to send email to {to} failed")
+                return False
+    
+    return False
 
 def send_whatsapp(to, message):
     twilio_client.messages.create(
@@ -273,14 +379,19 @@ def verify_payment():
             order.status = 'processing'
             db.session.commit()
             
-            # Send email confirmation
-            email_body = f"""
+            # Get order items for email
+            order_items = OrderItem.query.filter_by(order_id=order.id).all()
+            product_names = [item.product.name for item in order_items]
+            
+            # Send email confirmation to customer
+            customer_email_body = f"""
             Dear {order.customer_name},
 
             Your payment has been successfully processed, and your order is now confirmed.
 
             Order Details:
             Order ID: {order.id}
+            Products: {', '.join(product_names)}
             Total Amount: ₹{order.total_amount}
             Delivery Address: {order.address}
             Pincode: {order.pincode}
@@ -290,9 +401,31 @@ def verify_payment():
             Best regards,
             eSadabahar Team
             """
-            send_email(order.email, 'Order Confirmation - eSadabahar', email_body)
+            send_email(order.email, 'Order Confirmation - eSadabahar', customer_email_body)
+            
+            # Send email notification to admin
+            admin_email_body = f"""
+            New Order Received:
+
+            Order Details:
+            Order ID: {order.id}
+            Customer Name: {order.customer_name}
+            Email: {order.email}
+            Phone: {order.phone}
+            Products: {', '.join(product_names)}
+            Total Amount: ₹{order.total_amount}
+            Delivery Address: {order.address}
+            Pincode: {order.pincode}
+
+            Best regards,
+            eSadabahar System
+            """
+            send_email('esadabaharorders@gmail.com', f'New Order #{order.id} - eSadabahar', admin_email_body)
         
-        return jsonify({'success': True, 'message': 'Payment verified'})
+        return jsonify({
+            'success': True, 
+            'message': 'Payment verified'
+        })
         
     except razorpay.errors.SignatureVerificationError:
         return jsonify({'success': False, 'message': 'Invalid signature'}), 400
@@ -332,7 +465,7 @@ def webhook():
 
 @app.route('/order-confirmed')
 def order_confirmed():
-    return send_file('templates/order-confirmed.html')
+    return render_template('order-confirmed.html')
 
 @app.route('/test-email')
 def test_email():
@@ -340,6 +473,7 @@ def test_email():
         send_email('esadabaharindia@gmail.com', 'Test Email', 'This is a test email from eSadabahar.')
         return 'Test email sent successfully! Check your inbox.', 200
     except Exception as e:
+        app.logger.error(f"Test email error: {str(e)}")
         return f'Failed to send test email: {str(e)}', 500
 
 @app.route('/request-refund', methods=['POST'])
@@ -366,6 +500,160 @@ def request_refund():
         return jsonify({'success': True, 'message': 'Refund request sent'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/admin/api/orders')
+@login_required
+def get_orders():
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    orders = Order.query.order_by(Order.created_at.desc()).all()
+    total_orders = len(orders)
+    total_revenue = sum(order.total_amount for order in orders)
+    pending_orders = len([order for order in orders if order.status == 'pending'])
+    delivered_orders = len([order for order in orders if order.status == 'delivered'])
+    
+    return jsonify({
+        'orders': [{
+            'id': order.id,
+            'customer_name': order.customer_name,
+            'total_amount': order.total_amount,
+            'status': order.status,
+            'payment_status': order.payment_status,
+            'created_at': order.created_at.isoformat()
+        } for order in orders],
+        'total_orders': total_orders,
+        'total_revenue': total_revenue,
+        'pending_orders': pending_orders,
+        'delivered_orders': delivered_orders
+    })
+
+@app.route('/admin/api/order/<int:order_id>')
+@login_required
+def get_order(order_id):
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    order = Order.query.get_or_404(order_id)
+    return jsonify({
+        'id': order.id,
+        'customer_name': order.customer_name,
+        'email': order.email,
+        'phone': order.phone,
+        'address': order.address,
+        'pincode': order.pincode,
+        'total_amount': order.total_amount,
+        'status': order.status,
+        'payment_status': order.payment_status,
+        'created_at': order.created_at.isoformat(),
+        'items': [{
+            'product_name': item.product.name,
+            'quantity': item.quantity,
+            'price': item.price
+        } for item in order.items]
+    })
+
+@app.route('/admin/api/order/<int:order_id>/status', methods=['POST'])
+@login_required
+def update_order_status(order_id):
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    order = Order.query.get_or_404(order_id)
+    data = request.get_json()
+    new_status = data.get('status')
+    
+    if new_status not in ['pending', 'processing', 'delivered', 'cancelled']:
+        return jsonify({'error': 'Invalid status'}), 400
+    
+    order.status = new_status
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/admin/api/order/<int:order_id>', methods=['DELETE'])
+@login_required
+def delete_order(order_id):
+    if not current_user.is_admin:
+        app.logger.warning(f"Unauthorized delete attempt for order {order_id}")
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    try:
+        order = Order.query.get_or_404(order_id)
+        app.logger.info(f"Found order {order_id} for deletion")
+        
+        # Get order details for email
+        order_items = OrderItem.query.filter_by(order_id=order_id).all()
+        product_names = [item.product.name for item in order_items]
+        
+        # Send email to customer
+        customer_email_body = f"""
+        Dear {order.customer_name},
+
+        Your order #{order.id} has been cancelled.
+
+        Order Details:
+        Order ID: {order.id}
+        Products: {', '.join(product_names)}
+        Total Amount: ₹{order.total_amount}
+        Delivery Address: {order.address}
+        Pincode: {order.pincode}
+
+        If you have any questions, please contact us.
+
+        Best regards,
+        eSadabahar Team
+        """
+        try:
+            send_email(order.email, 'Order Cancelled - eSadabahar', customer_email_body)
+            app.logger.info(f"Sent cancellation email to customer {order.email}")
+        except Exception as e:
+            app.logger.error(f"Failed to send customer email: {str(e)}")
+        
+        # Send email to admin
+        admin_email_body = f"""
+        Order #{order.id} has been deleted.
+
+        Order Details:
+        Customer Name: {order.customer_name}
+        Email: {order.email}
+        Phone: {order.phone}
+        Products: {', '.join(product_names)}
+        Total Amount: ₹{order.total_amount}
+        Delivery Address: {order.address}
+        Pincode: {order.pincode}
+
+        Best regards,
+        eSadabahar System
+        """
+        try:
+            send_email('esadabaharorders@gmail.com', f'Order #{order.id} Deleted', admin_email_body)
+            app.logger.info("Sent deletion notification to admin")
+        except Exception as e:
+            app.logger.error(f"Failed to send admin email: {str(e)}")
+        
+        # Delete order items first (due to foreign key constraint)
+        for item in order_items:
+            db.session.delete(item)
+            app.logger.info(f"Deleted order item {item.id}")
+        
+        # Delete the order
+        db.session.delete(order)
+        db.session.commit()
+        app.logger.info(f"Successfully deleted order {order_id}")
+        
+        return jsonify({'success': True, 'message': 'Order deleted successfully'})
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting order {order_id}: {str(e)}")
+        return jsonify({'success': False, 'message': f'Failed to delete order: {str(e)}'}), 500
+
+@app.route('/get-razorpay-key')
+def get_razorpay_key():
+    return jsonify({
+        'key': os.getenv('RAZORPAY_KEY_ID')
+    })
 
 if __name__ == '__main__':
     with app.app_context():

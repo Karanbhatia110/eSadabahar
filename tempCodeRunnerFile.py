@@ -1,3 +1,2 @@
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-mail = Mail(app)
+
+        return check_password_hash(self.password_hash, password)
