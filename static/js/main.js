@@ -185,52 +185,52 @@ function validateForm(formId) {
 }
 
 // Admin Login Functionality
-function handleAdminLogin() {
+document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
-    if (!loginForm) return;
-
-    const errorAlert = document.getElementById('errorAlert');
-    const errorMessage = document.getElementById('errorMessage');
-
-    loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        if (!loginForm.checkValidity()) {
-            e.stopPropagation();
-            loginForm.classList.add('was-validated');
-            return;
-        }
-
-        const formData = new FormData(loginForm);
-        
-        fetch('/admin/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(formData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => Promise.reject(err));
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!loginForm.checkValidity()) {
+                e.stopPropagation();
+                loginForm.classList.add('was-validated');
+                return;
             }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                window.location.href = data.redirect;
-            } else {
-                errorMessage.textContent = data.message;
+
+            const formData = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+            
+            fetch('/admin/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    errorMessage.textContent = data.message;
+                    errorAlert.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                errorMessage.textContent = error.message || 'Login failed. Please check your credentials.';
                 errorAlert.classList.remove('d-none');
-            }
-        })
-        .catch(error => {
-            errorMessage.textContent = error.message || 'Login failed. Please check your credentials.';
-            errorAlert.classList.remove('d-none');
-            console.error('Login error:', error);
+                console.error('Login error:', error);
+            });
         });
-    });
-}
+    }
+});
 
 // Admin Order Management
 function handleOrderDeletion() {
@@ -303,12 +303,209 @@ function handleOrderDeletion() {
     }
 }
 
+// Dashboard Functions
+function fetchOrders() {
+    fetch('/admin/api/orders')
+        .then(response => response.json())
+        .then(data => {
+            updateStats(data);
+            updateOrdersTable(data.orders);
+        })
+        .catch(error => {
+            console.error('Error fetching orders:', error);
+            showNotification('Failed to fetch orders', 'danger');
+        });
+}
+
+function updateStats(data) {
+    document.getElementById('totalOrders').textContent = data.total_orders;
+    document.getElementById('totalRevenue').textContent = `₹${data.total_revenue.toFixed(2)}`;
+    document.getElementById('pendingOrders').textContent = data.pending_orders;
+    document.getElementById('deliveredOrders').textContent = data.delivered_orders;
+}
+
+function updateOrdersTable(orders) {
+    const tbody = document.getElementById('ordersTableBody');
+    tbody.innerHTML = '';
+
+    orders.forEach(order => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${order.id}</td>
+            <td>${order.customer_name}</td>
+            <td>₹${order.total_amount.toFixed(2)}</td>
+            <td>
+                <span class="badge bg-${getStatusBadgeClass(order.status)}">
+                    ${order.status}
+                </span>
+            </td>
+            <td>
+                <span class="badge bg-${getPaymentBadgeClass(order.payment_status)}">
+                    ${order.payment_status}
+                </span>
+            </td>
+            <td>${new Date(order.created_at).toLocaleString()}</td>
+            <td>
+                <button class="btn btn-sm btn-info me-1" onclick="viewOrder(${order.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-warning me-1" onclick="updateOrderStatus(${order.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="confirmDelete(${order.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getStatusBadgeClass(status) {
+    switch (status) {
+        case 'pending': return 'warning';
+        case 'processing': return 'info';
+        case 'delivered': return 'success';
+        case 'cancelled': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function getPaymentBadgeClass(status) {
+    switch (status) {
+        case 'pending': return 'warning';
+        case 'completed': return 'success';
+        case 'failed': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function viewOrder(orderId) {
+    fetch(`/admin/api/order/${orderId}`)
+        .then(response => response.json())
+        .then(data => {
+            const modal = new bootstrap.Modal(document.getElementById('viewOrderModal'));
+            const orderDetails = document.getElementById('orderDetails');
+            
+            orderDetails.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Customer Information</h6>
+                        <p><strong>Name:</strong> ${data.customer_name}</p>
+                        <p><strong>Email:</strong> ${data.email}</p>
+                        <p><strong>Phone:</strong> ${data.phone}</p>
+                        <p><strong>Address:</strong> ${data.address}</p>
+                        <p><strong>Pincode:</strong> ${data.pincode}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Order Information</h6>
+                        <p><strong>Order ID:</strong> ${data.id}</p>
+                        <p><strong>Total Amount:</strong> ₹${data.total_amount.toFixed(2)}</p>
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Payment Status:</strong> ${data.payment_status}</p>
+                        <p><strong>Date:</strong> ${new Date(data.created_at).toLocaleString()}</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h6>Order Items</h6>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items.map(item => `
+                                <tr>
+                                    <td>${item.product_name}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>₹${item.price.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error fetching order details:', error);
+            showNotification('Failed to fetch order details', 'danger');
+        });
+}
+
+function updateOrderStatus(orderId) {
+    document.getElementById('updateOrderId').value = orderId;
+    const modal = new bootstrap.Modal(document.getElementById('updateStatusModal'));
+    modal.show();
+}
+
+function submitStatusUpdate() {
+    const orderId = document.getElementById('updateOrderId').value;
+    const status = document.getElementById('status').value;
+
+    fetch(`/admin/api/order/${orderId}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Order status updated successfully', 'success');
+            fetchOrders();
+            bootstrap.Modal.getInstance(document.getElementById('updateStatusModal')).hide();
+        } else {
+            showNotification(data.error || 'Failed to update status', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating order status:', error);
+        showNotification('Failed to update order status', 'danger');
+    });
+}
+
+function confirmDelete(orderId) {
+    document.getElementById('orderIdToDelete').value = orderId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteOrderModal'));
+    modal.show();
+}
+
+function deleteOrder() {
+    const orderId = document.getElementById('orderIdToDelete').value;
+    console.log('Attempting to delete order with ID:', orderId); // Debugging log
+
+    fetch(`/admin/api/order/${orderId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        console.log('Delete response status:', response.status); // Debugging log
+        return response.json();
+    })
+    .then(data => {
+        console.log('Delete response data:', data); // Debugging log
+        if (data.success) {
+            showNotification('Order deleted successfully', 'success');
+            fetchOrders();
+            bootstrap.Modal.getInstance(document.getElementById('deleteOrderModal')).hide();
+        } else {
+            showNotification(data.message || 'Failed to delete order', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting order:', error);
+        showNotification('Failed to delete order', 'danger');
+    });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     updateCartCount();
-
-    // Initialize admin login if on login page
-    handleAdminLogin();
 
     // Add to cart buttons
     document.querySelectorAll('.add-to-cart').forEach(button => {
@@ -334,58 +531,63 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     handleOrderDeletion();
-});
 
-document.getElementById('checkout-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = {
-        name: document.getElementById('name').value,
-        email: document.getElementById('email').value,
-        phone: document.getElementById('phone').value,
-        address: document.getElementById('address').value,
-        pincode: document.getElementById('pincode').value,
-        amount: parseFloat(document.getElementById('total_amount').value),
-        items: JSON.parse(localStorage.getItem('cart')) || []
-    };
-
-    try {
-        const response = await fetch('/checkout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Checkout failed');
-        }
-
-        const data = await response.json();
-        if (data.success) {
-            // Store current order data for payment verification
-            formData.order_id = data.order_id;  // Add the order_id to the form data
-            localStorage.setItem('currentOrder', JSON.stringify(formData));
+    const checkoutForm = document.getElementById('checkout-form');
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            // Check if Razorpay is loaded, if not load it
-            if (typeof Razorpay === 'undefined') {
-                const script = document.createElement('script');
-                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-                script.onload = function() {
-                    initializeRazorpay(data);
-                };
-                document.head.appendChild(script);
-            } else {
-                initializeRazorpay(data);
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                pincode: document.getElementById('pincode').value,
+                amount: parseFloat(document.getElementById('total_amount').value),
+                items: JSON.parse(localStorage.getItem('cart')) || []
+            };
+
+            try {
+                const response = await fetch('/checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Checkout failed');
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    // Store current order data for payment verification
+                    formData.order_id = data.order_id;  // Add the order_id to the form data
+                    localStorage.setItem('currentOrder', JSON.stringify(formData));
+                    
+                    // Check if Razorpay is loaded, if not load it
+                    if (typeof Razorpay === 'undefined') {
+                        const script = document.createElement('script');
+                        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                        script.onload = function() {
+                            initializeRazorpay(data);
+                        };
+                        document.head.appendChild(script);
+                    } else {
+                        initializeRazorpay(data);
+                    }
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                alert(error.message || 'An error occurred during checkout');
             }
-        }
-    } catch (error) {
-        console.error('Checkout error:', error);
-        alert(error.message || 'An error occurred during checkout');
+        });
     }
+
+    fetchOrders();
 });
 
 function getCSRFToken() {

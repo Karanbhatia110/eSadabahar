@@ -186,8 +186,9 @@ def admin():
 def admin_login():
     if request.method == 'POST':
         try:
-            username = request.form.get('username')
-            password = request.form.get('password')
+            data = request.json  # Use request.json to handle JSON data
+            username = data.get('username')
+            password = data.get('password')
             
             if not username or not password:
                 return jsonify({
@@ -198,14 +199,7 @@ def admin_login():
             # Get user from database
             user = User.query.filter_by(username=username).first()
             
-            if not user:
-                return jsonify({
-                    'success': False,
-                    'message': 'Invalid username or password'
-                }), 401
-            
-            # Check password and admin status
-            if not user.check_password(password):
+            if not user or not user.check_password(password):
                 return jsonify({
                     'success': False,
                     'message': 'Invalid username or password'
@@ -226,7 +220,6 @@ def admin_login():
             
         except Exception as e:
             app.logger.error(f'Login error: {str(e)}')
-            db.session.rollback()  # Rollback any failed transaction
             return jsonify({
                 'success': False,
                 'message': f'An error occurred during login: {str(e)}'
@@ -504,83 +497,81 @@ def request_refund():
 @app.route('/admin/api/orders')
 @login_required
 def get_orders():
-    if not current_user.is_admin:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    orders = Order.query.order_by(Order.created_at.desc()).all()
-    total_orders = len(orders)
-    total_revenue = sum(order.total_amount for order in orders)
-    pending_orders = len([order for order in orders if order.status == 'pending'])
-    delivered_orders = len([order for order in orders if order.status == 'delivered'])
-    
-    return jsonify({
-        'orders': [{
-            'id': order.id,
-            'customer_name': order.customer_name,
-            'total_amount': order.total_amount,
-            'status': order.status,
-            'payment_status': order.payment_status,
-            'created_at': order.created_at.isoformat()
-        } for order in orders],
-        'total_orders': total_orders,
-        'total_revenue': total_revenue,
-        'pending_orders': pending_orders,
-        'delivered_orders': delivered_orders
-    })
+    try:
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+        total_orders = len(orders)
+        total_revenue = sum(order.total_amount for order in orders)
+        pending_orders = len([order for order in orders if order.status == 'pending'])
+        delivered_orders = len([order for order in orders if order.status == 'delivered'])
+
+        return jsonify({
+            'success': True,
+            'total_orders': total_orders,
+            'total_revenue': total_revenue,
+            'pending_orders': pending_orders,
+            'delivered_orders': delivered_orders,
+            'orders': [{
+                'id': order.id,
+                'customer_name': order.customer_name,
+                'total_amount': order.total_amount,
+                'status': order.status,
+                'payment_status': order.payment_status,
+                'created_at': order.created_at.isoformat()
+            } for order in orders]
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching orders: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch orders'}), 500
 
 @app.route('/admin/api/order/<int:order_id>')
 @login_required
 def get_order(order_id):
-    if not current_user.is_admin:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    order = Order.query.get_or_404(order_id)
-    return jsonify({
-        'id': order.id,
-        'customer_name': order.customer_name,
-        'email': order.email,
-        'phone': order.phone,
-        'address': order.address,
-        'pincode': order.pincode,
-        'total_amount': order.total_amount,
-        'status': order.status,
-        'payment_status': order.payment_status,
-        'created_at': order.created_at.isoformat(),
-        'items': [{
-            'product_name': item.product.name,
-            'quantity': item.quantity,
-            'price': item.price
-        } for item in order.items]
-    })
+    try:
+        order = Order.query.get_or_404(order_id)
+        return jsonify({
+            'success': True,
+            'id': order.id,
+            'customer_name': order.customer_name,
+            'email': order.email,
+            'phone': order.phone,
+            'address': order.address,
+            'pincode': order.pincode,
+            'total_amount': order.total_amount,
+            'status': order.status,
+            'payment_status': order.payment_status,
+            'created_at': order.created_at.isoformat(),
+            'items': [{
+                'product_name': item.product_name,
+                'quantity': item.quantity,
+                'price': item.price
+            } for item in order.items]
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching order {order_id}: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch order details'}), 500
 
 @app.route('/admin/api/order/<int:order_id>/status', methods=['POST'])
 @login_required
 def update_order_status(order_id):
-    if not current_user.is_admin:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    order = Order.query.get_or_404(order_id)
-    data = request.get_json()
-    new_status = data.get('status')
-    
-    if new_status not in ['pending', 'processing', 'delivered', 'cancelled']:
-        return jsonify({'error': 'Invalid status'}), 400
-    
-    order.status = new_status
-    db.session.commit()
-    
-    return jsonify({'success': True})
+    try:
+        data = request.json
+        if not data or 'status' not in data:
+            return jsonify({'success': False, 'error': 'Status is required'}), 400
+
+        order = Order.query.get_or_404(order_id)
+        order.status = data['status']
+        db.session.commit()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error updating order {order_id} status: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to update order status'}), 500
 
 @app.route('/admin/api/order/<int:order_id>', methods=['DELETE'])
 @login_required
 def delete_order(order_id):
-    if not current_user.is_admin:
-        app.logger.warning(f"Unauthorized delete attempt for order {order_id}")
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
-    
     try:
         order = Order.query.get_or_404(order_id)
-        app.logger.info(f"Found order {order_id} for deletion")
         
         # Get order details for email
         order_items = OrderItem.query.filter_by(order_id=order_id).all()
@@ -642,12 +633,11 @@ def delete_order(order_id):
         db.session.commit()
         app.logger.info(f"Successfully deleted order {order_id}")
         
-        return jsonify({'success': True, 'message': 'Order deleted successfully'})
-        
+        return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Error deleting order {order_id}: {str(e)}")
-        return jsonify({'success': False, 'message': f'Failed to delete order: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Failed to delete order'}), 500
 
 @app.route('/get-razorpay-key')
 def get_razorpay_key():
