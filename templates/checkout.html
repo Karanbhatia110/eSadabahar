@@ -74,6 +74,10 @@
                                     <label for="pincode" class="form-label">Pincode</label>
                                     <input type="text" class="form-control" id="pincode" name="pincode" required>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="delivery_date" class="form-label">Delivery Date</label>
+                                    <input type="date" class="form-control" id="delivery_date" name="delivery_date" required>
+                                </div>
                                 <input type="hidden" id="total_amount" name="total_amount">
                                 <button type="submit" class="btn btn-primary">Place Order</button>
                             </form>
@@ -154,6 +158,11 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Set minimum date to today
+        const today = new Date();
+        const minDate = today.toISOString().split('T')[0];
+        document.getElementById('delivery_date').min = minDate;
+
         // Initialize cart from localStorage
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
         updateOrderSummary();

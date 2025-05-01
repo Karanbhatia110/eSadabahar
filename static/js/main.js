@@ -544,6 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 address: document.getElementById('address').value,
                 pincode: document.getElementById('pincode').value,
                 amount: parseFloat(document.getElementById('total_amount').value),
+                delivery_date: document.getElementById('delivery_date').value,
                 items: JSON.parse(localStorage.getItem('cart')) || []
             };
 

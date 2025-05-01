@@ -84,6 +84,7 @@ class Order(db.Model):
     status = db.Column(db.String(20), default='pending')
     payment_status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(ist))
+    delivery_date = db.Column(db.Date, nullable=False)
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):
@@ -123,7 +124,7 @@ def checkout():
                 data['amount'] = float(data['total_amount'])
         
         # Validate required fields
-        required_fields = ['name', 'email', 'phone', 'address', 'pincode', 'amount']
+        required_fields = ['name', 'email', 'phone', 'address', 'pincode', 'amount', 'delivery_date', 'items']
         missing_fields = [field for field in required_fields if not data.get(field)]
         if missing_fields:
             return jsonify({
@@ -140,9 +141,21 @@ def checkout():
             pincode=data['pincode'],
             total_amount=float(data['amount']),
             status='pending',
-            payment_status='pending'
+            payment_status='pending',
+            delivery_date=datetime.strptime(data['delivery_date'], '%Y-%m-%d').date()
         )
         db.session.add(order)
+        db.session.commit()
+
+        # Create order items
+        for item in data['items']:
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item['id'],
+                quantity=item['quantity'],
+                price=item['price']
+            )
+            db.session.add(order_item)
         db.session.commit()
 
         # Create Razorpay order
@@ -262,6 +275,7 @@ def get_email_template(template_name, **kwargs):
                         <p><strong>Total Amount:</strong> ₹{total_amount}</p>
                         <p><strong>Delivery Address:</strong> {address}</p>
                         <p><strong>Pincode:</strong> {pincode}</p>
+                        <p><strong>Delivery Date:</strong> {delivery_date}</p>
                     </div>
                     
                     <p>We will keep you updated on your order status.</p>
@@ -284,6 +298,7 @@ def get_email_template(template_name, **kwargs):
                         <p><strong>Total Amount:</strong> ₹{total_amount}</p>
                         <p><strong>Delivery Address:</strong> {address}</p>
                         <p><strong>Pincode:</strong> {pincode}</p>
+                        <p><strong>Delivery Date:</strong> {delivery_date}</p>
                     </div>
                     
                     <p>If you have any questions, please contact us.</p>
@@ -374,7 +389,11 @@ def verify_payment():
             
             # Get order items for email
             order_items = OrderItem.query.filter_by(order_id=order.id).all()
-            product_names = [item.product.name for item in order_items]
+            product_details = []
+            for item in order_items:
+                product = Product.query.get(item.product_id)
+                if product:
+                    product_details.append(f"{product.name} (Qty: {item.quantity})")
             
             # Send email confirmation to customer
             customer_email_body = f"""
@@ -384,10 +403,11 @@ def verify_payment():
 
             Order Details:
             Order ID: {order.id}
-            Products: {', '.join(product_names)}
+            Products: {', '.join(product_details) if product_details else 'No products found'}
             Total Amount: ₹{order.total_amount}
             Delivery Address: {order.address}
             Pincode: {order.pincode}
+            Delivery Date: {order.delivery_date.strftime('%d-%m-%Y')}
 
             Thank you for shopping with us!
 
@@ -405,10 +425,11 @@ def verify_payment():
             Customer Name: {order.customer_name}
             Email: {order.email}
             Phone: {order.phone}
-            Products: {', '.join(product_names)}
+            Products: {', '.join(product_details) if product_details else 'No products found'}
             Total Amount: ₹{order.total_amount}
             Delivery Address: {order.address}
             Pincode: {order.pincode}
+            Delivery Date: {order.delivery_date.strftime('%d-%m-%Y')}
 
             Best regards,
             eSadabahar System
@@ -516,7 +537,8 @@ def get_orders():
                 'total_amount': order.total_amount,
                 'status': order.status,
                 'payment_status': order.payment_status,
-                'created_at': order.created_at.isoformat()
+                'created_at': order.created_at.isoformat(),
+                'delivery_date': order.delivery_date.strftime('%Y-%m-%d')
             } for order in orders]
         })
     except Exception as e:
@@ -528,6 +550,19 @@ def get_orders():
 def get_order(order_id):
     try:
         order = Order.query.get_or_404(order_id)
+        order_items = OrderItem.query.filter_by(order_id=order_id).all()
+        items_details = []
+        
+        for item in order_items:
+            product = Product.query.get(item.product_id)
+            if product:
+                items_details.append({
+                    'product_name': product.name,
+                    'quantity': item.quantity,
+                    'price': item.price,
+                    'total': item.quantity * item.price
+                })
+        
         return jsonify({
             'success': True,
             'id': order.id,
@@ -540,11 +575,8 @@ def get_order(order_id):
             'status': order.status,
             'payment_status': order.payment_status,
             'created_at': order.created_at.isoformat(),
-            'items': [{
-                'product_name': item.product_name,
-                'quantity': item.quantity,
-                'price': item.price
-            } for item in order.items]
+            'delivery_date': order.delivery_date.strftime('%Y-%m-%d'),
+            'items': items_details
         })
     except Exception as e:
         app.logger.error(f"Error fetching order {order_id}: {str(e)}")
@@ -644,6 +676,24 @@ def get_razorpay_key():
     return jsonify({
         'key': os.getenv('RAZORPAY_KEY_ID')
     })
+
+@app.route('/setup')
+def setup():
+    try:
+        # Check if admin user already exists
+        admin = User.query.filter_by(username='admin').first()
+        if admin:
+            return 'Admin user already exists!'
+        
+        # Create admin user
+        admin = User(username='admin', is_admin=True)
+        admin.set_password('admin123')  # You should change this password
+        db.session.add(admin)
+        db.session.commit()
+        
+        return 'Admin user created successfully! Username: admin, Password: admin123'
+    except Exception as e:
+        return f'Error creating admin user: {str(e)}'
 
 if __name__ == '__main__':
     with app.app_context():
