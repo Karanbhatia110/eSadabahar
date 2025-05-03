@@ -50,6 +50,15 @@ twilio_client = Client(
 # Set the timezone to IST
 ist = pytz.timezone('Asia/Kolkata')
 
+# Add favicon routes
+@app.route('/favicon.ico')
+def favicon():
+    return send_file('static/images/Real Logo.png', mimetype='image/png')
+
+@app.route('/static/images/Real Logo.png')
+def serve_logo():
+    return send_file('static/images/Real Logo.png', mimetype='image/png')
+
 # Models
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -85,6 +94,7 @@ class Order(db.Model):
     payment_status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(ist))
     delivery_date = db.Column(db.Date, nullable=False)
+    instruction = db.Column(db.Text)
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):
@@ -142,7 +152,8 @@ def checkout():
             total_amount=float(data['amount']),
             status='pending',
             payment_status='pending',
-            delivery_date=datetime.strptime(data['delivery_date'], '%Y-%m-%d').date()
+            delivery_date=datetime.strptime(data['delivery_date'], '%Y-%m-%d').date(),
+            instruction=data.get('instruction', '')  # Add instruction field
         )
         db.session.add(order)
         db.session.commit()
@@ -519,9 +530,37 @@ def request_refund():
 @login_required
 def get_orders():
     try:
-        orders = Order.query.order_by(Order.created_at.desc()).all()
+        # Get filter parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
+
+        # Base query
+        query = Order.query
+
+        # Apply date filters
+        if start_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Order.created_at >= start_date)
+        if end_date:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            # Add one day to include the entire end date
+            end_date = end_date + timedelta(days=1)
+            query = query.filter(Order.created_at < end_date)
+
+        # Apply price filters
+        if min_price is not None:
+            query = query.filter(Order.total_amount >= min_price)
+        if max_price is not None:
+            query = query.filter(Order.total_amount <= max_price)
+
+        # Get filtered orders
+        orders = query.order_by(Order.created_at.desc()).all()
+        
+        # Calculate statistics
         total_orders = len(orders)
-        total_revenue = sum(order.total_amount for order in orders)
+        total_revenue = sum(order.total_amount for order in orders if order.status == 'delivered')
         pending_orders = len([order for order in orders if order.status == 'pending'])
         delivered_orders = len([order for order in orders if order.status == 'delivered'])
 

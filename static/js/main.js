@@ -305,63 +305,96 @@ function handleOrderDeletion() {
 
 // Dashboard Functions
 function fetchOrders() {
-    fetch('/admin/api/orders')
+    // Get filter values
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const minPrice = document.getElementById('minPrice').value;
+    const maxPrice = document.getElementById('maxPrice').value;
+
+    // Build query string
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (minPrice) params.append('min_price', minPrice);
+    if (maxPrice) params.append('max_price', maxPrice);
+
+    // Fetch orders with filters
+    fetch(`/admin/api/orders?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
-            updateStats(data);
-            updateOrdersTable(data.orders);
+            if (data.success) {
+                // Update stats
+                document.getElementById('totalOrders').textContent = data.total_orders;
+                document.getElementById('totalRevenue').textContent = `₹${data.total_revenue.toFixed(2)}`;
+                document.getElementById('pendingOrders').textContent = data.pending_orders;
+                document.getElementById('deliveredOrders').textContent = data.delivered_orders;
+
+                // Update orders table
+                const tbody = document.getElementById('ordersTableBody');
+                tbody.innerHTML = '';
+                data.orders.forEach(order => {
+                    const orderDate = new Date(order.created_at);
+                    const formattedDateTime = orderDate.toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>#${order.id}</td>
+                        <td>${order.customer_name}</td>
+                        <td>₹${order.total_amount.toFixed(2)}</td>
+                        <td><span class="badge bg-${getStatusColor(order.status)}">${order.status}</span></td>
+                        <td><span class="badge bg-${getPaymentStatusColor(order.payment_status)}">${order.payment_status}</span></td>
+                        <td>${formattedDateTime}</td>
+                        <td>${new Date(order.delivery_date).toLocaleDateString()}</td>
+                        <td class="text-nowrap">
+                            <button class="btn btn-sm btn-info me-1" onclick="viewOrder(${order.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning me-1" onclick="showUpdateStatusModal(${order.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="showDeleteModal(${order.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
         })
-        .catch(error => {
-            console.error('Error fetching orders:', error);
-            showNotification('Failed to fetch orders', 'danger');
-        });
+        .catch(error => console.error('Error:', error));
 }
 
-function updateStats(data) {
-    document.getElementById('totalOrders').textContent = data.total_orders;
-    document.getElementById('totalRevenue').textContent = `₹${data.total_revenue.toFixed(2)}`;
-    document.getElementById('pendingOrders').textContent = data.pending_orders;
-    document.getElementById('deliveredOrders').textContent = data.delivered_orders;
+function applyFilters() {
+    // Validate date range
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        showNotification('Start date cannot be after end date', 'warning');
+        return;
+    }
+
+    // Validate price range
+    const minPrice = document.getElementById('minPrice').value;
+    const maxPrice = document.getElementById('maxPrice').value;
+    
+    if (minPrice && maxPrice && parseFloat(minPrice) > parseFloat(maxPrice)) {
+        showNotification('Minimum price cannot be greater than maximum price', 'warning');
+        return;
+    }
+
+    // Apply filters
+    fetchOrders();
 }
 
-function updateOrdersTable(orders) {
-    const tbody = document.getElementById('ordersTableBody');
-    tbody.innerHTML = '';
-
-    orders.forEach(order => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${order.id}</td>
-            <td>${order.customer_name}</td>
-            <td>₹${order.total_amount.toFixed(2)}</td>
-            <td>
-                <span class="badge bg-${getStatusBadgeClass(order.status)}">
-                    ${order.status}
-                </span>
-            </td>
-            <td>
-                <span class="badge bg-${getPaymentBadgeClass(order.payment_status)}">
-                    ${order.payment_status}
-                </span>
-            </td>
-            <td>${new Date(order.created_at).toLocaleString()}</td>
-            <td>
-                <button class="btn btn-sm btn-info me-1" onclick="viewOrder(${order.id})">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-warning me-1" onclick="updateOrderStatus(${order.id})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="confirmDelete(${order.id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-function getStatusBadgeClass(status) {
+function getStatusColor(status) {
     switch (status) {
         case 'pending': return 'warning';
         case 'processing': return 'info';
@@ -371,7 +404,7 @@ function getStatusBadgeClass(status) {
     }
 }
 
-function getPaymentBadgeClass(status) {
+function getPaymentStatusColor(status) {
     switch (status) {
         case 'pending': return 'warning';
         case 'completed': return 'success';
@@ -380,64 +413,91 @@ function getPaymentBadgeClass(status) {
     }
 }
 
+function toggleFilters() {
+    const filterControls = document.getElementById('filterControls');
+    if (filterControls.style.display === 'none') {
+        filterControls.style.display = 'flex';
+    } else {
+        filterControls.style.display = 'none';
+    }
+}
+
 function viewOrder(orderId) {
     fetch(`/admin/api/order/${orderId}`)
         .then(response => response.json())
         .then(data => {
-            const modal = new bootstrap.Modal(document.getElementById('viewOrderModal'));
-            const orderDetails = document.getElementById('orderDetails');
-            
-            orderDetails.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Customer Information</h6>
-                        <p><strong>Name:</strong> ${data.customer_name}</p>
-                        <p><strong>Email:</strong> ${data.email}</p>
-                        <p><strong>Phone:</strong> ${data.phone}</p>
-                        <p><strong>Address:</strong> ${data.address}</p>
-                        <p><strong>Pincode:</strong> ${data.pincode}</p>
+            if (data.success) {
+                const order = data;
+                const orderDate = new Date(order.created_at);
+                const formattedDateTime = orderDate.toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                
+                const details = document.getElementById('orderDetails');
+                details.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Customer Information</h6>
+                            <p><strong>Name:</strong> ${order.customer_name}</p>
+                            <p><strong>Email:</strong> ${order.email}</p>
+                            <p><strong>Phone:</strong> ${order.phone}</p>
+                            <p><strong>Address:</strong> ${order.address}</p>
+                            <p><strong>Pincode:</strong> ${order.pincode}</p>
+                            ${order.instruction ? `<p><strong>Instructions:</strong> ${order.instruction}</p>` : ''}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Order Information</h6>
+                            <p><strong>Order ID:</strong> #${order.id}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(order.status)}">${order.status}</span></p>
+                            <p><strong>Payment Status:</strong> <span class="badge bg-${getPaymentStatusColor(order.payment_status)}">${order.payment_status}</span></p>
+                            <p><strong>Order Date:</strong> ${formattedDateTime}</p>
+                            <p><strong>Delivery Date:</strong> ${new Date(order.delivery_date).toLocaleDateString()}</p>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <h6>Order Information</h6>
-                        <p><strong>Order ID:</strong> ${data.id}</p>
-                        <p><strong>Total Amount:</strong> ₹${data.total_amount.toFixed(2)}</p>
-                        <p><strong>Status:</strong> ${data.status}</p>
-                        <p><strong>Payment Status:</strong> ${data.payment_status}</p>
-                        <p><strong>Date:</strong> ${new Date(data.created_at).toLocaleString()}</p>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Order Items</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                        <th>Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${order.items.map(item => `
+                                        <tr>
+                                            <td>${item.product_name}</td>
+                                            <td>${item.quantity}</td>
+                                            <td>₹${item.price.toFixed(2)}</td>
+                                            <td>₹${(item.quantity * item.price).toFixed(2)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                                        <td><strong>₹${order.total_amount.toFixed(2)}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
-                </div>
-                <div class="mt-4">
-                    <h6>Order Items</h6>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.items.map(item => `
-                                <tr>
-                                    <td>${item.product_name}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>₹${item.price.toFixed(2)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            modal.show();
+                `;
+                new bootstrap.Modal(document.getElementById('viewOrderModal')).show();
+            }
         })
-        .catch(error => {
-            console.error('Error fetching order details:', error);
-            showNotification('Failed to fetch order details', 'danger');
-        });
+        .catch(error => console.error('Error:', error));
 }
 
-function updateOrderStatus(orderId) {
+function showUpdateStatusModal(orderId) {
     document.getElementById('updateOrderId').value = orderId;
     const modal = new bootstrap.Modal(document.getElementById('updateStatusModal'));
     modal.show();
@@ -470,7 +530,7 @@ function submitStatusUpdate() {
     });
 }
 
-function confirmDelete(orderId) {
+function showDeleteModal(orderId) {
     document.getElementById('orderIdToDelete').value = orderId;
     const modal = new bootstrap.Modal(document.getElementById('deleteOrderModal'));
     modal.show();
@@ -545,6 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 pincode: document.getElementById('pincode').value,
                 amount: parseFloat(document.getElementById('total_amount').value),
                 delivery_date: document.getElementById('delivery_date').value,
+                instruction: document.getElementById('instruction').value,
                 items: JSON.parse(localStorage.getItem('cart')) || []
             };
 
