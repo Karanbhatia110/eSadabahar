@@ -17,7 +17,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///eSadabahar.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -63,7 +63,7 @@ def serve_logo():
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     
     def set_password(self, password):
@@ -615,6 +615,7 @@ def get_order(order_id):
             'payment_status': order.payment_status,
             'created_at': order.created_at.isoformat(),
             'delivery_date': order.delivery_date.strftime('%Y-%m-%d'),
+            'instruction': order.instruction,
             'items': items_details
         })
     except Exception as e:
@@ -737,52 +738,4 @@ def setup():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        
-        # Seed the database with sample products if none exist
-        if Product.query.count() == 0:
-            sample_products = [
-                Product(name='Red Rose Bouquet', category='bouquet', price=599.00, 
-                       description='Beautiful bouquet of 12 red roses', 
-                       image_url='https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg',
-                       stock=20),
-                Product(name='Mixed Flower Bouquet', category='bouquet', price=799.00, 
-                       description='Colorful bouquet with various flowers', 
-                       image_url='https://images.pexels.com/photos/931154/pexels-photo-931154.jpeg',
-                       stock=15),
-                Product(name='Chocolate Cake', category='cake_500g', price=699.00, 
-                       description='Delicious chocolate cake with frosting', 
-                       image_url='https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg',
-                       stock=10),
-                Product(name='Vanilla Cake', category='cake_500g', price=599.00, 
-                       description='Classic vanilla cake with buttercream', 
-                       image_url='https://images.pexels.com/photos/2144112/pexels-photo-2144112.jpeg',
-                       stock=10),
-                Product(name='Chocolate Truffles', category='chocolate', price=399.00, 
-                       description='Assorted chocolate truffles', 
-                       image_url='https://images.pexels.com/photos/65882/chocolate-dark-coffee-confiserie-65882.jpeg',
-                       stock=25),
-                Product(name='Dark Chocolate Box', category='chocolate', price=499.00, 
-                       description='Premium dark chocolate assortment', 
-                       image_url='https://images.pexels.com/photos/65882/chocolate-dark-coffee-confiserie-65882.jpeg',
-                       stock=20),
-                Product(name='Flower & Cake Combo', category='combo', price=1299.00, 
-                       description='Bouquet of roses with a chocolate cake', 
-                       image_url='https://images.pexels.com/photos/931154/pexels-photo-931154.jpeg',
-                       stock=5),
-                Product(name='Chocolate & Flowers', category='combo', price=999.00, 
-                       description='Chocolate box with a small flower arrangement', 
-                       image_url='https://images.pexels.com/photos/65882/chocolate-dark-coffee-confiserie-65882.jpeg',
-                       stock=8)
-            ]
-            
-            for product in sample_products:
-                db.session.add(product)
-            
-            db.session.commit()
-            print("Sample products added to the database.")
-
-
-
-
-    
     app.run(debug=True) 

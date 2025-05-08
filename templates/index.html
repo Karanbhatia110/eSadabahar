@@ -123,6 +123,9 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        <div class="alert alert-warning mb-3">
+                            <small><i class="fas fa-info-circle"></i> Shape and design may vary from location to location</small>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Choose Weight:</label>
                             <div class="btn-group w-100" role="group">
@@ -173,8 +176,8 @@
                     <div class="col-md-4">
                         <h5>Contact Us</h5>
                         <p><i class="fas fa-phone"></i> +91 7814745821</p>
-                        <p><i class="fas fa-envelope"></i> karanbhatia9780@gmail.com</p>
-                        <p><i class="fas fa-map-marker-alt"></i> Bansal Plaza, Zirakpur VIP Road</p>
+                        <p><i class="fas fa-envelope"></i> esadabaharindia@gmail.com</p>
+                        <p><i class="fas fa-map-marker-alt"></i> Bansal Plaza Shop No. 12 LG, Zirakpur VIP Road</p>
                     </div>
                     <div class="col-md-4">
                         <h5>Order Timing</h5>
@@ -184,9 +187,9 @@
                     <div class="col-md-4">
                         <h5>Follow Us</h5>
                         <div class="social-links">
-                            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+                            <a href="https://www.facebook.com/rohit.bhatia.311493" class="social-link"><i class="fab fa-facebook"></i></a>
                             <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-                            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                            <a href="https://www.instagram.com/esadabahar/" class="social-link"><i class="fab fa-instagram"></i></a>
                         </div>
                     </div>
                 </div>
@@ -235,8 +238,12 @@
             const bouquets = products.filter(product => product.category === 'bouquet');
             renderProductSection('bouquets', bouquets);
 
-            // Render cakes
-            const cakes = products.filter(product => product.category === 'cake_500g' || product.category === 'cake_1kg');
+            // Render cakes - combine 500g and 1kg cakes
+            const cakes = products.filter(product => product.category === 'cake_500g' || product.category === 'cake_1kg')
+                .map(cake => ({
+                    ...cake,
+                    name: cake.name + (cake.category === 'cake_1kg' ? ' (1kg)' : '')
+                }));
             renderProductSection('cakes', cakes);
 
             // Render chocolates
