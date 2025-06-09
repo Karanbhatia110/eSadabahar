@@ -118,6 +118,19 @@ body {
     flex-grow: 1;
 }
 
+.product-price-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.product-price-original {
+    font-size: 0.9rem;
+    color: #999;
+    text-decoration: line-through;
+    margin-bottom: 0.2rem;
+}
+
 .product-price {
     font-size: 1.2rem;
     font-weight: 700;
