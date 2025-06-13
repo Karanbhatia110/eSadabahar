@@ -85,8 +85,8 @@ A full-featured e-commerce website for selling flowers, cakes, chocolates, and c
 
 - URL: `/admin/login`
 - Default credentials:
-  - Username: admin
-  - Password: admin123
+  - Username: kyu batau
+  - Password: khud pata karle 
 
 ## License
 
