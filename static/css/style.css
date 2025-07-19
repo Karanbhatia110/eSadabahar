@@ -695,4 +695,32 @@ main {
     .footer-tags {
         justify-content: center;
     }
+}
+
+.floating-cart-btn {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background-color: #3498db;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    z-index: 2000;
+}
+.floating-cart-btn .badge {
+    margin-left: 6px;
+}
+@media (max-width: 991.98px) {
+    .floating-cart-btn {
+        display: flex !important;
+    }
+    .navbar .cart-btn {
+        display: none !important;
+    }
 } 
