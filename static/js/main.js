@@ -9,7 +9,7 @@ function updateCartCount() {
 }
 
 function addToCart(productId, name, price) {
-    const existingItem = cart.find(item => item.id === productId);
+    const existingItem = cart.find(item => item.id === productId && item.name === name && item.price === price);
     
     if (existingItem) {
         existingItem.quantity += 1;
