@@ -30,7 +30,7 @@ app.config['MAIL_DEBUG'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
 # Initialize MongoDB client
-mongo_client = MongoClient('mongodb+srv://karanbhatia9780:QNqkytgMgiNFZ6oO@esadabahar.gj3hixi.mongodb.net/')
+mongo_client = MongoClient('mongodb+srv://karanbhatia9780:QNqkytgMgiNFZ6oO@esadabahar.gj3hixi.mongodb.net/?tls=true')
 db = mongo_client['esadabahar']
 users_collection = db['users']
 products_collection = db['products']
