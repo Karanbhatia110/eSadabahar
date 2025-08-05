@@ -16,7 +16,7 @@ def init_db():
             # Create admin user
             admin_user = {
                 'username': 'admin',
-                'password_hash': generate_password_hash('admin123'),
+                'password_hash': generate_password_hash('admin123', method='pbkdf2:sha256'),
                 'is_admin': True
             }
             users_collection.insert_one(admin_user)
