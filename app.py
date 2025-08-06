@@ -75,7 +75,7 @@ class User(UserMixin):
         self.is_admin = user_data.get('is_admin', False)
     
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
         
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -737,7 +737,7 @@ def setup():
         # Create admin user
         admin_user = {
             'username': 'admin',
-            'password_hash': generate_password_hash('admin123'),
+            'password_hash': generate_password_hash('admin123', method='pbkdf2:sha256'),
             'is_admin': True
         }
         users_collection.insert_one(admin_user)
