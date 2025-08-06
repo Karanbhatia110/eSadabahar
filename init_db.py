@@ -11,12 +11,12 @@ def init_db():
         db.products.drop()
         
         # Check if admin user exists
-        admin = users_collection.find_one({'username': 'admin'})
+        admin = users_collection.find_one({'username': 'esadabahar'})
         if not admin:
             # Create admin user
             admin_user = {
                 'username': 'admin',
-                'password_hash': generate_password_hash('admin123', method='pbkdf2:sha256'),
+                'password_hash': generate_password_hash('9780444970', method='pbkdf2:sha256'),
                 'is_admin': True
             }
             users_collection.insert_one(admin_user)
