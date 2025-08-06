@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- Notification Container -->
+    <div id="notification-container" class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 9999;"></div>
+    
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
@@ -177,9 +180,18 @@
             const itemsHtml = cart.map(item => {
                 subtotal += item.price * item.quantity;
                 return `
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>${item.name} x ${item.quantity}</span>
-                        <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>${item.name}</span>
+                                <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-sm btn-outline-secondary me-2" onclick="updateQuantity('${item.id}', -1)">-</button>
+                                <span class="mx-2">${item.quantity}</span>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="updateQuantity('${item.id}', 1)">+</button>
+                            </div>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -211,6 +223,38 @@
 
             document.getElementById('total_amount').value = total;
         }
+
+        // Function to update quantity (will be called from main.js)
+        window.updateQuantity = function(productId, change) {
+            // Convert productId to string for consistent comparison
+            const stringProductId = String(productId);
+            const item = cart.find(item => String(item.id) === stringProductId);
+            
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    // Remove item when quantity reaches 0
+                    cart = cart.filter(item => String(item.id) !== stringProductId);
+                    if (typeof showNotification === 'function') {
+                        showNotification(`${item.name} removed from cart!`, 'info');
+                    }
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification(`${item.name} quantity updated to ${item.quantity}!`, 'info');
+                    }
+                }
+                
+                localStorage.setItem('cart', JSON.stringify(cart));
+                updateOrderSummary();
+                
+                // Update cart count in navigation
+                const cartCount = document.getElementById('cart-count');
+                if (cartCount) {
+                    const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+                    cartCount.textContent = totalItems;
+                }
+            }
+        };
     });
     </script>
     <script src="/static/js/main.js"></script>
