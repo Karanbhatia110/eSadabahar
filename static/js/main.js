@@ -1,5 +1,60 @@
 // Cart Management
-let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let cart = [];
+
+// Initialize cart from localStorage with error handling
+function initializeCart() {
+    const savedCart = localStorage.getItem('cart');
+    console.log('initializeCart - savedCart:', savedCart);
+    
+    if (savedCart) {
+        try {
+            cart = JSON.parse(savedCart);
+            console.log('initializeCart - parsed cart:', cart);
+            
+            // Ensure cart is an array
+            if (!Array.isArray(cart)) {
+                console.log('initializeCart - cart is not array, resetting');
+                cart = [];
+                localStorage.setItem('cart', JSON.stringify(cart));
+            } else {
+                console.log('initializeCart - cart is valid array with', cart.length, 'items');
+            }
+        } catch (error) {
+            console.error('Error parsing cart from localStorage:', error);
+            cart = [];
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
+    } else {
+        console.log('initializeCart - no saved cart found');
+        cart = [];
+    }
+    
+    console.log('initializeCart - final cart:', cart);
+}
+
+// Initialize cart immediately
+initializeCart();
+
+// Test function to debug cart issues
+function testCart() {
+    console.log('=== CART DEBUG TEST ===');
+    console.log('Cart array:', cart);
+    console.log('Cart length:', cart.length);
+    console.log('localStorage cart:', localStorage.getItem('cart'));
+    
+    if (cart.length > 0) {
+        console.log('First item:', cart[0]);
+        console.log('First item ID type:', typeof cart[0].id);
+        console.log('First item ID value:', cart[0].id);
+    }
+}
+
+// Test function to add a test item to cart
+function addTestItem() {
+    console.log('Adding test item to cart...');
+    addToCart('test-1', 'Test Product', 100);
+    console.log('Cart after adding test item:', cart);
+}
 
 function updateCartCount() {
     const cartCount = document.getElementById('cart-count');
@@ -16,51 +71,143 @@ function updateCartCount() {
 }
 
 function addToCart(productId, name, price) {
-    const existingItem = cart.find(item => item.id === productId && item.name === name && item.price === price);
+    // Convert productId to string for consistent storage
+    const stringProductId = String(productId);
+    console.log('Adding to cart:', { productId, stringProductId, name, price });
+    
+    const existingItem = cart.find(item => String(item.id) === stringProductId);
     
     if (existingItem) {
         existingItem.quantity += 1;
+        console.log('Updated existing item quantity:', existingItem);
     } else {
-        cart.push({
-            id: productId,
+        const newItem = {
+            id: stringProductId,
             name: name,
             price: price,
             quantity: 1
-        });
+        };
+        cart.push(newItem);
+        console.log('Added new item to cart:', newItem);
     }
     
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
+    updateCartDisplay();
     
     // Show notification
     showNotification(`${name} added to cart!`, 'success');
 }
 
 function removeFromCart(productId) {
-    const item = cart.find(item => item.id === productId);
+    const stringProductId = String(productId);
+    const item = cart.find(item => String(item.id) === stringProductId);
     const itemName = item ? item.name : 'Item';
     
-    cart = cart.filter(item => item.id !== productId);
+    cart = cart.filter(item => String(item.id) !== stringProductId);
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
+    updateCartDisplay();
     
     // Show notification
     showNotification(`${itemName} removed from cart!`, 'info');
 }
 
 function updateQuantity(productId, change) {
-    const item = cart.find(item => item.id === productId);
+    console.log('updateQuantity called with:', { productId, change, cartLength: cart.length });
+    
+    // Convert productId to string for consistent comparison
+    const stringProductId = String(productId);
+    const item = cart.find(item => String(item.id) === stringProductId);
+    
+    console.log('Found item:', item);
+    
     if (item) {
-        const oldQuantity = item.quantity;
-        item.quantity = Math.max(1, item.quantity + change);
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateCartCount();
+        const newQuantity = item.quantity + change;
+        console.log('New quantity will be:', newQuantity);
         
-        // Show notification if quantity changed
-        if (oldQuantity !== item.quantity) {
-            showNotification(`${item.name} quantity updated to ${item.quantity}!`, 'info');
+        if (newQuantity <= 0) {
+            // Remove the item completely
+            console.log('Removing item from cart');
+            cart = cart.filter(item => String(item.id) !== stringProductId);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            updateCartDisplay();
+            
+            // Show notification
+            showNotification(`${item.name} removed from cart!`, 'info');
+        } else {
+            // Update quantity
+            console.log('Updating quantity to:', newQuantity);
+            const oldQuantity = item.quantity;
+            item.quantity = newQuantity;
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            updateCartDisplay();
+            
+            // Show notification if quantity changed
+            if (oldQuantity !== item.quantity) {
+                showNotification(`${item.name} quantity updated to ${item.quantity}!`, 'info');
+            }
         }
+    } else {
+        console.log('Item not found in cart');
+        console.log('Cart items:', cart);
     }
+}
+
+// Cart display function for cart page
+function updateCartDisplay() {
+    const cartItems = document.getElementById('cart-items');
+    const subtotalElement = document.getElementById('subtotal');
+    const deliveryFeeElement = document.getElementById('delivery-fee');
+    const totalElement = document.getElementById('total');
+
+    // Only proceed if we're on the cart page
+    if (!cartItems) {
+        console.log('updateCartDisplay: Not on cart page, cartItems not found');
+        return;
+    }
+
+    console.log('updateCartDisplay called, cart:', cart);
+    console.log('Cart length:', cart.length);
+
+    if (!cart || cart.length === 0) {
+        cartItems.innerHTML = '<p>Your cart is empty</p>';
+        if (subtotalElement) subtotalElement.textContent = '₹0.00';
+        if (deliveryFeeElement) deliveryFeeElement.textContent = '₹0.00';
+        if (totalElement) totalElement.textContent = '₹0.00';
+        return;
+    }
+
+    let subtotal = 0;
+    cartItems.innerHTML = cart.map(item => {
+        subtotal += item.price * item.quantity;
+        return `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">${item.name}</h5>
+                            <p class="card-text">₹${item.price.toFixed(2)}</p>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="updateQuantity('${item.id}', -1)" data-product-id="${item.id}">-</button>
+                            <span>${item.quantity}</span>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="updateQuantity('${item.id}', 1)" data-product-id="${item.id}">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const deliveryFee = subtotal > 1000 ? 0 : 50;
+    const total = subtotal + deliveryFee;
+
+    if (subtotalElement) subtotalElement.textContent = `₹${subtotal.toFixed(2)}`;
+    if (deliveryFeeElement) deliveryFeeElement.textContent = `₹${deliveryFee.toFixed(2)}`;
+    if (totalElement) totalElement.textContent = `₹${total.toFixed(2)}`;
 }
 
 // Notifications
@@ -590,7 +737,16 @@ function deleteOrder() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded - Initializing cart...');
+    console.log('Current cart before initialization:', cart);
+    
+    // Test cart functionality
+    testCart();
+    
     updateCartCount();
+    updateCartDisplay(); // Add this line to initialize cart display
+    
+    console.log('Cart after initialization:', cart);
 
     // Add to cart buttons
     document.querySelectorAll('.add-to-cart').forEach(button => {
