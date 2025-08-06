@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- Notification Container -->
+    <div id="notification-container" class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 9999;"></div>
+    
     <a href="/cart" class="floating-cart-btn d-lg-none" style="display: none;">
         <i class="fas fa-shopping-cart"></i>
         <span id="floatingCartCount" class="badge bg-primary">0</span>
@@ -40,7 +43,7 @@
                     <li class="nav-item">
                         <a class="nav-link cart-btn" href="/cart">
                             <i class="fas fa-shopping-cart"></i>
-                            Cart <span id="cartCount" class="badge bg-primary">0</span>
+                            Cart <span id="cart-count" class="badge bg-primary">0</span>
                         </a>
                     </li>
                 </ul>
@@ -379,7 +382,7 @@
         });
 
         function updateCartCount() {
-            const cartCount = document.getElementById('cartCount');
+            const cartCount = document.getElementById('cart-count');
             if (cartCount) {
                 const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
                 cartCount.textContent = totalItems;
