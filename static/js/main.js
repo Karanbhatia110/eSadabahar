@@ -3,8 +3,15 @@ let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
 function updateCartCount() {
     const cartCount = document.getElementById('cart-count');
+    const floatingCartCount = document.getElementById('floatingCartCount');
+    const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+    
     if (cartCount) {
-        cartCount.textContent = cart.reduce((total, item) => total + item.quantity, 0);
+        cartCount.textContent = totalItems;
+    }
+    
+    if (floatingCartCount) {
+        floatingCartCount.textContent = totalItems;
     }
 }
 
@@ -24,22 +31,35 @@ function addToCart(productId, name, price) {
     
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-    showNotification('Item added to cart!');
+    
+    // Show notification
+    showNotification(`${name} added to cart!`, 'success');
 }
 
 function removeFromCart(productId) {
+    const item = cart.find(item => item.id === productId);
+    const itemName = item ? item.name : 'Item';
+    
     cart = cart.filter(item => item.id !== productId);
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-    showNotification('Item removed from cart!');
+    
+    // Show notification
+    showNotification(`${itemName} removed from cart!`, 'info');
 }
 
 function updateQuantity(productId, change) {
     const item = cart.find(item => item.id === productId);
     if (item) {
+        const oldQuantity = item.quantity;
         item.quantity = Math.max(1, item.quantity + change);
         localStorage.setItem('cart', JSON.stringify(cart));
         updateCartCount();
+        
+        // Show notification if quantity changed
+        if (oldQuantity !== item.quantity) {
+            showNotification(`${item.name} quantity updated to ${item.quantity}!`, 'info');
+        }
     }
 }
 
@@ -53,17 +73,22 @@ function showNotification(message, type = 'info') {
 
     const notification = document.createElement('div');
     notification.className = `alert alert-${type} alert-dismissible fade show`;
+    notification.style.minWidth = '300px';
+    notification.style.maxWidth = '500px';
     notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'}"></i>
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
 
     container.insertBefore(notification, container.firstChild);
 
-    // Auto-remove after 5 seconds
+    // Auto-remove after 3 seconds
     setTimeout(() => {
-        notification.remove();
-    }, 5000);
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
 }
 
 // Order Time Validation
