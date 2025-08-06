@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- Notification Container -->
+    <div id="notification-container" class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 9999;"></div>
+    
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
@@ -176,12 +179,9 @@
                                     <p class="card-text">₹${item.price.toFixed(2)}</p>
                                 </div>
                                 <div class="d-flex align-items-center">
-                                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="updateQuantity(${item.id}, -1)">-</button>
+                                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="updateQuantity('${item.id}', -1)">-</button>
                                     <span>${item.quantity}</span>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="updateQuantity(${item.id}, 1)">+</button>
-                                    <button class="btn btn-sm btn-outline-danger ms-3" onclick="removeItem(${item.id})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="updateQuantity('${item.id}', 1)">+</button>
                                 </div>
                             </div>
                         </div>
@@ -198,7 +198,10 @@
         }
 
         function updateQuantity(productId, change) {
-            const item = cart.find(item => item.id === productId);
+            // Convert productId to string for consistent comparison
+            const stringProductId = String(productId);
+            const item = cart.find(item => String(item.id) === stringProductId);
+            
             if (item) {
                 item.quantity += change;
                 if (item.quantity <= 0) {
@@ -207,15 +210,31 @@
                     localStorage.setItem('cart', JSON.stringify(cart));
                     updateCartDisplay();
                     updateCartCount();
+                    
+                    // Show notification if quantity changed
+                    if (typeof showNotification === 'function') {
+                        showNotification(`${item.name} quantity updated to ${item.quantity}!`, 'info');
+                    }
                 }
             }
         }
 
         function removeItem(productId) {
-            cart = cart.filter(item => item.id !== productId);
-            localStorage.setItem('cart', JSON.stringify(cart));
-            updateCartDisplay();
-            updateCartCount();
+            // Convert productId to string for consistent comparison
+            const stringProductId = String(productId);
+            const itemToRemove = cart.find(item => String(item.id) === stringProductId);
+            
+            if (itemToRemove) {
+                cart = cart.filter(item => String(item.id) !== stringProductId);
+                localStorage.setItem('cart', JSON.stringify(cart));
+                updateCartDisplay();
+                updateCartCount();
+                
+                // Show notification
+                if (typeof showNotification === 'function') {
+                    showNotification(`${itemToRemove.name} removed from cart!`, 'info');
+                }
+            }
         }
 
         function updateCartCount() {
