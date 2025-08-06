@@ -15,7 +15,7 @@ def init_db():
         if not admin:
             # Create admin user
             admin_user = {
-                'username': 'admin',
+                'username': 'esadabahar',
                 'password_hash': generate_password_hash('9780444970', method='pbkdf2:sha256'),
                 'is_admin': True
             }
