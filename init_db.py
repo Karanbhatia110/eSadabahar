@@ -171,14 +171,14 @@ def init_db():
         ]
 
         combos = [
-            {
-                'name': 'Romance Combo',
-                'category': 'combo',
-                'price': 1999.00,
-                'description': 'A perfect romantic package featuring a red rose bouquet paired with a premium chocolate box, ideal for anniversaries and special dates.',
-                'image_url': 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-4cdc-61f6-bf7b-d66cefeb4df7/raw?se=2025-06-26T12%3A48%3A48Z&sp=r&sv=2024-08-04&sr=b&scid=a62cf746-9d54-5007-a11c-9d258b3ab36d&skoid=b0fd38cc-3d33-418f-920e-4798de4acdd1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-06-26T10%3A47%3A11Z&ske=2025-06-27T10%3A47%3A11Z&sks=b&skv=2024-08-04&sig=5cA71SykmnJgehfA6U8mAt5YJmeLBjlMzetS3pi1THY%3D',
-                'stock': 10
-            },
+            # {
+            #     'name': 'Romance Combo',
+            #     'category': 'combo',
+            #     'price': 1999.00,
+            #     'description': 'A perfect romantic package featuring a red rose bouquet paired with a premium chocolate box, ideal for anniversaries and special dates.',
+            #     'image_url': 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-4cdc-61f6-bf7b-d66cefeb4df7/raw?se=2025-06-26T12%3A48%3A48Z&sp=r&sv=2024-08-04&sr=b&scid=a62cf746-9d54-5007-a11c-9d258b3ab36d&skoid=b0fd38cc-3d33-418f-920e-4798de4acdd1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-06-26T10%3A47%3A11Z&ske=2025-06-27T10%3A47%3A11Z&sks=b&skv=2024-08-04&sig=5cA71SykmnJgehfA6U8mAt5YJmeLBjlMzetS3pi1THY%3D',
+            #     'stock': 10
+            # },
             {
                 'name': 'Birthday Special',
                 'category': 'combo',
@@ -187,34 +187,45 @@ def init_db():
                 'image_url': 'https://imgs.search.brave.com/eHDLXIMLHzdJRjQv9XcaES0a7aj_j_rzuIiZEDESj6M/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWdj/ZG4uZmxvd2VyYXVy/YS5jb20va2l0a2F0/LWNha2Utd2l0aC1y/b3Nlcy1ib3VxdWV0/LTk4MDc4OTBjby1B/XzAuanBn',
                 'stock': 10
             },
+            # {
+            #     'name': 'Sweet Celebration',
+            #     'category': 'combo',
+            #     'price': 1299.00,
+            #     'description': 'A delightful combination of a chocolate cake and a premium chocolate box, perfect for sweet celebrations.',
+            #     'image_url': '\static\images\combos\sweet_celebration.png',
+            #     'stock': 10
+            # },
+            # {
+            #     'name': 'Love & Sweetness',
+            #     'category': 'combo',
+            #     'price': 1799.00,
+            #     'description': 'A comprehensive gift package featuring a rose bouquet, premium chocolates, and a delicious cake, perfect for expressing love.',
+            #     'image_url': '/static/images/products/love-sweetness.jpg',
+            #     'stock': 10
+            # },
+            # {
+            #     'name': 'Premium Gift Set',
+            #     'category': 'combo',
+            #     'price': 2499.00,
+            #     'description': 'Our most luxurious gift package combining premium flowers, an exquisite cake, and premium chocolates, perfect for grand celebrations.',
+            #     'image_url': '/static/images/products/premium-gift-set.jpg',
+            #     'stock': 10
+            # }
+        ]
+
+        Plants = [
             {
-                'name': 'Sweet Celebration',
-                'category': 'combo',
-                'price': 1299.00,
-                'description': 'A delightful combination of a chocolate cake and a premium chocolate box, perfect for sweet celebrations.',
-                'image_url': 'https://sdmntpreastus.oaiusercontent.com/files/00000000-0bec-61f9-a577-8b514283e956/raw?se=2025-06-26T12%3A58%3A16Z&sp=r&sv=2024-08-04&sr=b&scid=c534a120-8d9e-5041-9fca-10645fa87b5e&skoid=b0fd38cc-3d33-418f-920e-4798de4acdd1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-06-26T11%3A30%3A10Z&ske=2025-06-27T11%3A30%3A10Z&sks=b&skv=2024-08-04&sig=t1dVbS0/ASs1f5T7wdjlQhoLvR0UdoLMQbApvZcdm1w%3D',
-                'stock': 10
-            },
-            {
-                'name': 'Love & Sweetness',
-                'category': 'combo',
-                'price': 1799.00,
-                'description': 'A comprehensive gift package featuring a rose bouquet, premium chocolates, and a delicious cake, perfect for expressing love.',
-                'image_url': '/static/images/products/love-sweetness.jpg',
-                'stock': 10
-            },
-            {
-                'name': 'Premium Gift Set',
-                'category': 'combo',
-                'price': 2499.00,
-                'description': 'Our most luxurious gift package combining premium flowers, an exquisite cake, and premium chocolates, perfect for grand celebrations.',
-                'image_url': '/static/images/products/premium-gift-set.jpg',
+                'name': 'Lucky Bamboo',
+                'category': 'plant',
+                'price': 499.00,
+                'description': 'A beautiful Lucky Bamboo plant, perfect for your home or office.',
+                'image_url': '/static/images/plants/lucky-bamboo.jpg',
                 'stock': 10
             }
         ]
 
         # Add all products to database
-        all_products = bouquets + cakes + chocolates + combos
+        all_products = bouquets + cakes + chocolates + combos + Plants
         if all_products:
             products_collection.insert_many(all_products)
             print("Products added successfully")
