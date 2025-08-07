@@ -108,6 +108,15 @@
                     </div>
                 </div>
 
+                <!-- Plants Section -->
+                <div id="plants" class="plants mb-5">
+                    <h2 class="section-title animate-fade-in">Beautiful Plants</h2>
+                    <div class="row g-4" id="plants-container">
+                        <!-- Plant products will be dynamically added here -->
+                            
+                    </div>
+                </div>
+
                 <!-- Combos Section -->
                 <div id="combos" class="combos mb-5">
                     <h2 class="section-title animate-fade-in">Special Combos</h2>
@@ -118,6 +127,7 @@
                         <button class="btn btn-outline-primary show-more-btn" data-category="combos">Show More</button>
                     </div>
                 </div>
+                
             </div>
         </section>
 
@@ -256,6 +266,10 @@
             // Render chocolates
             const chocolates = products.filter(product => product.category === 'chocolate');
             renderProductSection('chocolates', chocolates);
+
+            // Render plants
+            const plants = products.filter(product => product.category === 'plant');
+            renderProductSection('plants', plants);
 
             // Render combos
             const combos = products.filter(product => product.category === 'combo');
