@@ -699,8 +699,8 @@ main {
 
 .floating-cart-btn {
     position: fixed;
-    top: 80px;
-    right: 20px;
+    top: 16px;
+    right: 85px;
     background-color: #3498db;
     color: white;
     padding: 12px 20px;
