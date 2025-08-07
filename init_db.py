@@ -219,7 +219,7 @@ def init_db():
                 'category': 'plant',
                 'price': 499.00,
                 'description': 'A beautiful Lucky Bamboo plant, perfect for your home or office.',
-                'image_url': '/static/images/plants/lucky-bamboo.jpg',
+                'image_url': '/static/images/lucky-bamboo.jpg',
                 'stock': 10
             }
         ]
