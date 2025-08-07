@@ -219,7 +219,7 @@ def init_db():
                 'category': 'plant',
                 'price': 499.00,
                 'description': 'A beautiful Lucky Bamboo plant, perfect for your home or office.',
-                'image_url': '/static/images/lucky-bamboo.jpg',
+                'image_url': 'https://www.google.com/imgres?q=lucky%20bamboo%20plant%20jpg&imgurl=https%3A%2F%2F5.imimg.com%2Fdata5%2FSELLER%2FDefault%2F2024%2F1%2F379490246%2FCM%2FGJ%2FDD%2F194182750%2Flucky-bamboo-indoor-plant.jpg&imgrefurl=https%3A%2F%2Fwww.indiamart.com%2Fproddetail%2Flucky-bamboo-indoor-plant-2851907213133.html%3Fsrsltid%3DAfmBOookxyxZj4j6F8heMSzys6wFQL6nTrJ1eww8AijgzfCPkWZqrA79&docid=jSk-JABJhYA3xM&tbnid=wCyrOKYhGgbWMM&vet=1&w=1000&h=1000&hcb=2&ved=2ahUKEwjJ9N2IkPiOAxWUSmwGHXWFCxwQM3oECCMQAA',
                 'stock': 10
             }
         ]
