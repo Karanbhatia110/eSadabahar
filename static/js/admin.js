@@ -570,6 +570,7 @@ function setupImageInputs(initialUrl = '') {
             const res = await fetch('/admin/api/upload', { method: 'POST', body: form });
             const data = await res.json();
             if (data.success) {
+                // Prefer persistent media URL (GridFS) if available
                 urlInput.value = data.url;
                 showPreview(data.url);
             } else {
