@@ -127,6 +127,9 @@
                         <button class="btn btn-outline-primary show-more-btn" data-category="combos">Show More</button>
                     </div>
                 </div>
+
+                <!-- Dynamic Categories (auto-generated sections for new categories) -->
+                <div id="dynamic-categories" class="mb-5"></div>
                 
             </div>
         </section>
@@ -245,6 +248,7 @@
             .then(products => {
                 // Render products by category
                 renderProducts(products);
+                // Optionally update any category UIs from backend categories (if needed later)
             })
             .catch(error => {
                 console.error('Error fetching products:', error);
@@ -274,9 +278,38 @@
             // Render combos
             const combos = products.filter(product => product.category === 'combo');
             renderProductSection('combos', combos);
+
+            // Render dynamic categories (any not in known set)
+            const known = new Set(['bouquet', 'cake_500g', 'cake_1kg', 'chocolate', 'plant', 'combo']);
+            const allCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+            const otherCategories = allCategories.filter(c => !known.has(c));
+            const dynRoot = document.getElementById('dynamic-categories');
+            if (dynRoot) dynRoot.innerHTML = '';
+
+            otherCategories.forEach(cat => {
+                const sectionId = toSectionId(cat);
+                const title = toTitle(cat);
+                if (dynRoot) {
+                    const section = document.createElement('div');
+                    section.id = sectionId;
+                    section.className = 'mb-5';
+                    section.innerHTML = `
+                        <h2 class="section-title animate-fade-in">${title}</h2>
+                        <div class="row g-4" id="${sectionId}-container"></div>
+                        <div class="text-center mt-4" id="${sectionId}-show-more-container" style="display: none;">
+                            <button class="btn btn-outline-primary show-more-btn" data-category="${sectionId}">Show More</button>
+                        </div>
+                    `;
+                    dynRoot.appendChild(section);
+                }
+                const prods = products.filter(p => p.category === cat);
+                renderProductSection(sectionId, prods);
+            });
+
+            attachShowMoreListeners();
         }
 
-        function renderProductSection(category, products) {
+            function renderProductSection(category, products) {
             const container = document.getElementById(`${category}-container`);
             const showMoreContainer = document.getElementById(`${category}-show-more-container`);
             
@@ -303,9 +336,13 @@
                                     <p class="product-description">${product.description}</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="product-price">₹${product.price.toFixed(2)}</span>
-                                       <button class="btn btn-sm btn-primary select-cake-btn" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}">
-                                            <i class="fas fa-shopping-cart me-1"></i>Select
-                                        </button>
+                                            ${product.stock && product.stock > 0 ? `
+                                                <button class="btn btn-sm btn-primary select-cake-btn" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}">
+                                                    <i class="fas fa-shopping-cart me-1"></i>Select
+                                                </button>
+                                            ` : `
+                                                <span class="badge bg-secondary">Out of Stock</span>
+                                            `}
                                     </div>
                                 </div>
                             </div>
@@ -324,9 +361,13 @@
                                     <p class="product-description">${product.description}</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="product-price">₹${product.price.toFixed(2)}</span>
-                                        <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}">
-                                            <i class="fas fa-shopping-cart me-1"></i>Add
-                                        </button>
+                                            ${product.stock && product.stock > 0 ? `
+                                                <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}">
+                                                    <i class="fas fa-shopping-cart me-1"></i>Add
+                                                </button>
+                                            ` : `
+                                                <span class="badge bg-secondary">Out of Stock</span>
+                                            `}
                                     </div>
                                 </div>
                             </div>
@@ -371,17 +412,32 @@
             }
         }
 
-        // Show More button functionality
-        document.querySelectorAll('.show-more-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const category = this.dataset.category;
-                const cards = document.querySelectorAll(`#${category} .product-card-container.hidden`);
-                cards.forEach(card => {
-                    card.style.display = card.style.display === 'none' ? 'block' : 'none';
+        function attachShowMoreListeners() {
+            document.querySelectorAll('.show-more-btn').forEach(button => {
+                if (button._showMoreBound) return;
+                button._showMoreBound = true;
+                button.addEventListener('click', function() {
+                    const category = this.dataset.category;
+                    const cards = document.querySelectorAll(`#${category} .product-card-container.hidden`);
+                    cards.forEach(card => {
+                        card.style.display = card.style.display === 'none' ? 'block' : 'none';
+                    });
+                    this.textContent = this.textContent === 'Show More' ? 'Show Less' : 'Show More';
                 });
-                this.textContent = this.textContent === 'Show More' ? 'Show Less' : 'Show More';
             });
-        });
+        }
+
+        function toSectionId(name) {
+            return 'cat-' + String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        }
+
+        function toTitle(name) {
+            return String(name)
+                .replace(/[_-]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+        }
 
         // Cake selection functionality
         const cakeWeightModal = new bootstrap.Modal(document.getElementById('cakeWeightModal'));
