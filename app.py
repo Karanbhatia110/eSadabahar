@@ -8,7 +8,11 @@ from dotenv import load_dotenv
 import requests
 from twilio.rest import Client
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from io import BytesIO
+import gridfs
 import time
+import uuid
 import pytz
 from pymongo import MongoClient
 from bson import ObjectId
@@ -28,6 +32,12 @@ app.config['MAIL_MAX_EMAILS'] = 10
 app.config['MAIL_ASCII_ATTACHMENTS'] = False
 app.config['MAIL_DEBUG'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB
+
+ALLOWED_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize MongoDB client
 mongo_client = MongoClient('mongodb+srv://karanbhatia9780:QNqkytgMgiNFZ6oO@esadabahar.gj3hixi.mongodb.net/?tls=true')
@@ -36,6 +46,8 @@ users_collection = db['users']
 products_collection = db['products']
 orders_collection = db['orders']
 order_items_collection = db['order_items']
+categories_collection = db['categories']
+grid_fs = gridfs.GridFS(db)
 
 # Initialize extensions
 login_manager = LoginManager(app)
@@ -267,6 +279,199 @@ def get_products():
         'image_url': product['image_url'],
         'stock': product['stock']
     } for product in products])
+
+@app.route('/api/categories')
+def get_public_categories():
+    try:
+        product_categories = products_collection.distinct('category')
+        stored = [c.get('name') for c in categories_collection.find({}, {'name': 1})]
+        names = sorted({*(c for c in product_categories if c), *(n for n in stored if n)})
+        return jsonify({'success': True, 'categories': names})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# -------------------- Admin: Product & Category Management --------------------
+def ensure_admin_access():
+    if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    return None
+
+@app.route('/admin/api/categories', methods=['GET', 'POST'])
+@login_required
+def admin_categories():
+    access_error = ensure_admin_access()
+    if access_error:
+        return access_error
+
+    if request.method == 'GET':
+        categories = list(categories_collection.find())
+        product_categories = products_collection.distinct('category')
+        # Build unique names combining both sources
+        name_set = {c['name'] for c in categories if c.get('name')}
+        name_set.update({c for c in product_categories if c})
+        merged = sorted(name_set)
+        return jsonify({'success': True, 'categories': [
+            {'id': None, 'name': name} for name in merged
+        ]})
+
+    # POST - create category
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'error': 'Category name is required'}), 400
+
+    # Ensure uniqueness (case-insensitive)
+    existing = categories_collection.find_one({'name': {'$regex': f'^{name}$', '$options': 'i'}})
+    if existing:
+        return jsonify({'success': False, 'error': 'Category already exists'}), 409
+
+    result = categories_collection.insert_one({'name': name})
+    return jsonify({'success': True, 'id': str(result.inserted_id), 'name': name})
+
+@app.route('/admin/api/categories/<category_id>', methods=['PUT', 'DELETE'])
+@login_required
+def admin_update_delete_category(category_id):
+    access_error = ensure_admin_access()
+    if access_error:
+        return access_error
+
+    try:
+        object_id = ObjectId(category_id)
+    except Exception:
+        return jsonify({'success': False, 'error': 'Invalid category ID'}), 400
+
+    if request.method == 'DELETE':
+        categories_collection.delete_one({'_id': object_id})
+        return jsonify({'success': True})
+
+    # PUT - update category name
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'error': 'Category name is required'}), 400
+    categories_collection.update_one({'_id': object_id}, {'$set': {'name': name}})
+    return jsonify({'success': True})
+
+@app.route('/admin/api/products', methods=['GET', 'POST'])
+@login_required
+def admin_products():
+    access_error = ensure_admin_access()
+    if access_error:
+        return access_error
+
+    if request.method == 'GET':
+        products = list(products_collection.find().sort('name', 1))
+        return jsonify({'success': True, 'products': [{
+            'id': str(p['_id']),
+            'name': p.get('name'),
+            'category': p.get('category'),
+            'price': float(p.get('price', 0)),
+            'description': p.get('description', ''),
+            'image_url': p.get('image_url', ''),
+            'stock': int(p.get('stock', 0))
+        } for p in products]})
+
+    # POST - create product
+    data = request.get_json() or {}
+    required = ['name', 'category', 'price', 'description', 'image_url']
+    missing = [f for f in required if not data.get(f)]
+    if missing:
+        return jsonify({'success': False, 'error': f"Missing fields: {', '.join(missing)}"}), 400
+
+    product = {
+        'name': data['name'],
+        'category': data['category'],  # store as string
+        'price': float(data['price']),
+        'description': data['description'],
+        'image_url': data['image_url'],
+        'stock': int(data.get('stock', 0))
+    }
+    result = products_collection.insert_one(product)
+    return jsonify({'success': True, 'id': str(result.inserted_id)})
+
+@app.route('/admin/api/products/<product_id>', methods=['PUT', 'DELETE'])
+@login_required
+def admin_update_delete_product(product_id):
+    access_error = ensure_admin_access()
+    if access_error:
+        return access_error
+
+    try:
+        object_id = ObjectId(product_id)
+    except Exception:
+        return jsonify({'success': False, 'error': 'Invalid product ID'}), 400
+
+    if request.method == 'DELETE':
+        products_collection.delete_one({'_id': object_id})
+        # Also remove any order_items referencing this product (optional cleanup)
+        order_items_collection.delete_many({'product_id': object_id})
+        return jsonify({'success': True})
+
+    # PUT - update one or more fields
+    data = request.get_json() or {}
+    updatable_fields = {'name', 'category', 'price', 'description', 'image_url', 'stock'}
+    update_data = {k: data[k] for k in updatable_fields if k in data}
+    if 'price' in update_data:
+        update_data['price'] = float(update_data['price'])
+    if 'stock' in update_data:
+        update_data['stock'] = int(update_data['stock'])
+
+    if not update_data:
+        return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
+
+    products_collection.update_one({'_id': object_id}, {'$set': update_data})
+    return jsonify({'success': True})
+
+def _allowed_image(filename: str) -> bool:
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_IMAGE_EXTENSIONS
+
+@app.route('/admin/api/upload', methods=['POST'])
+@login_required
+def admin_upload_image():
+    access_error = ensure_admin_access()
+    if access_error:
+        return access_error
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+    filename = secure_filename(file.filename)
+    if not _allowed_image(filename):
+        return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+    ext = os.path.splitext(filename)[1].lower()
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+    try:
+        # Save to disk for local development
+        file.save(save_path)
+
+        # Also save to GridFS for persistence across hosts
+        try:
+            # Reset stream and read bytes
+            try:
+                file.stream.seek(0)
+            except Exception:
+                pass
+            content = file.read()
+            if not content:
+                with open(save_path, 'rb') as f:
+                    content = f.read()
+            grid_id = grid_fs.put(
+                content,
+                filename=unique_name,
+                contentType=getattr(file, 'mimetype', None) or 'application/octet-stream'
+            )
+            media_url = f"/media/{str(grid_id)}"
+        except Exception:
+            media_url = None
+
+        url = media_url or f"/static/uploads/{unique_name}"
+        return jsonify({'success': True, 'url': url, 'local_url': f"/static/uploads/{unique_name}"})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def get_email_template(template_name, **kwargs):
     templates = {
@@ -725,6 +930,16 @@ def get_razorpay_key():
     return jsonify({
         'key': os.getenv('RAZORPAY_KEY_ID')
     })
+
+@app.route('/media/<file_id>')
+def serve_media(file_id):
+    try:
+        gridout = grid_fs.get(ObjectId(file_id))
+        data = gridout.read()
+        mimetype = getattr(gridout, 'contentType', None) or 'application/octet-stream'
+        return send_file(BytesIO(data), mimetype=mimetype, download_name=getattr(gridout, 'filename', 'file'))
+    except Exception:
+        return jsonify({'success': False, 'error': 'File not found'}), 404
 
 @app.route('/setup')
 def setup():
