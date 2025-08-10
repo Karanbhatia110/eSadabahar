@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} - eSadabahar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* Page animations */
+        .fade-in { animation: fadeIn 0.6s ease both; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .scale-in { animation: scaleIn 0.5s ease both; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        .product-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f8fbff 0%, #f1f5ff 100%);
+        }
+
+        .product-image-wrapper {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .product-image { width: 100%; height: auto; display: block; }
+
+        .badge-category {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 2;
+        }
+
+        .price-tag { font-size: 1.75rem; font-weight: 700; color: #2b2f4b; }
+
+        .cart-actions .btn { min-width: 140px; }
+
+        .feature-chip {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #f3f6ff;
+            color: #334155;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
+
+        @media (max-width: 767.98px) {
+            .price-tag { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="notification-container" class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 9999;"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">eSadabahar</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link cart-btn" href="/cart"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="badge bg-primary">0</span></a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="mt-5 pt-4 pt-lg-5">
+        <div class="container py-4 py-lg-5">
+            <div class="row g-4 align-items-start">
+                <div class="col-lg-6 fade-in">
+                    <div class="product-image-wrapper product-hero">
+                        {% if product.category|lower == 'teddy' %}
+                        <span class="badge bg-info text-dark badge-category"><i class="fas fa-info-circle me-1"></i> Expected delivery in 7–10 days</span>
+                        {% endif %}
+                        <img id="productMainImage" class="product-image" src="{{ product.image_url or ('https://placehold.co/800x600?text=' ~ (product.name|urlencode)) }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='https://placehold.co/800x600?text=' + encodeURIComponent('{{ product.name }}')" data-default="{{ product.image_url }}">
+                    </div>
+                </div>
+                <div class="col-lg-6 fade-in" style="animation-delay: .08s">
+                    <div class="section p-4 p-lg-5">
+                        <div class="d-flex align-items-start justify-content-between mb-3">
+                            <div>
+                                <h1 class="h3 h2-lg mb-2">{{ product.name }}</h1>
+                                <span class="badge bg-secondary">{{ product.category|replace('_', ' ')|title }}</span>
+                            </div>
+                            {% if product.stock > 0 %}
+                                <span class="badge bg-success ms-3">In Stock</span>
+                            {% else %}
+                                <span class="badge bg-danger ms-3">Out of Stock</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="price-tag mb-3">₹{{ '%.2f'|format(product.price) }}</div>
+
+                        <div class="mb-3">
+                            <div class="feature-chip"><i class="fas fa-shield-heart"></i> Fresh & Quality Assured</div>
+                            <div class="feature-chip"><i class="fas fa-truck"></i> Reliable Delivery</div>
+                            <div class="feature-chip"><i class="fas fa-rotate-left"></i> Easy Support</div>
+                        </div>
+
+                        <p class="text-muted mb-4">{{ product.description }}</p>
+
+                        {% if product.category|lower == 'cake_500g' or product.category|lower == 'cake_1kg' %}
+                        <div class="mb-3">
+                            <label class="form-label">Select Cake Weight</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="cake-weight" id="cake-weight-500g" value="500g" checked>
+                                <label class="btn btn-outline-primary" for="cake-weight-500g">500g - ₹<span id="cake-price-500g">{{ '%.2f'|format(product.price if product.category|lower == 'cake_500g' else (product.price/2)) }}</span></label>
+                                <input type="radio" class="btn-check" name="cake-weight" id="cake-weight-1kg" value="1kg">
+                                <label class="btn btn-outline-primary" for="cake-weight-1kg">1kg - ₹<span id="cake-price-1kg">{{ '%.2f'|format(product.price if product.category|lower == 'cake_1kg' else (product.price*2)) }}</span></label>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if product.colors %}
+                        <div class="mb-3">
+                            <label class="form-label">Select Color</label>
+                            <div class="d-flex flex-wrap gap-2 position-relative" id="colorOptions" style="z-index: 3;">
+                                {% for c in product.colors %}
+                        <button type="button" class="btn btn-outline-secondary color-option" data-color="{{ c|lower }}">{{ c }}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="cart-actions d-flex flex-wrap align-items-center gap-2">
+                            {% if product.stock > 0 %}
+                                <button id="addToCartBtn" class="btn btn-primary btn-lg scale-in"
+                                        data-product-id="{{ product.id }}"
+                                        data-product-name="{{ product.name }}"
+                                        data-base-price="{{ '%.2f'|format(product.price) }}"
+                                        data-category="{{ product.category }}"
+                                        data-image="{{ product.image_url }}">
+                                    <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                                </button>
+                            {% else %}
+                                <button class="btn btn-secondary btn-lg" disabled>
+                                    <i class="fas fa-ban me-2"></i> Out of Stock
+                                </button>
+                            {% endif %}
+                            <a href="/checkout" class="btn btn-outline-primary btn-lg"><i class="fas fa-bolt me-2"></i> Buy Now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-3 mt-lg-4">
+                <div class="col-12">
+                    <div class="section p-4 p-lg-5 fade-in" style="animation-delay: .16s">
+                        <h5 class="mb-3">Why shop with eSadabahar?</h5>
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3">
+                                <div class="feature-chip w-100 justify-content-center"><i class="fas fa-leaf"></i> Fresh Products</div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="feature-chip w-100 justify-content-center"><i class="fas fa-clock"></i> On-time Delivery</div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="feature-chip w-100 justify-content-center"><i class="fas fa-user-shield"></i> Secure Payment</div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="feature-chip w-100 justify-content-center"><i class="fas fa-headset"></i> 24/7 Support</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <a href="https://wa.me/917814745821" class="whatsapp-chat-btn" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+        Chat with us
+    </a>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p class="mb-0">&copy; 2024 eSadabahar. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script id="variantsData" type="application/json">{{ (product.variants or []) | tojson }}</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // update nav cart count
+            if (typeof updateCartCount === 'function') updateCartCount();
+
+            // Add to cart handler
+            const btn = document.getElementById('addToCartBtn');
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    const id = String(btn.dataset.productId || '');
+                    let name = String(btn.dataset.productName || '');
+                    let price = parseFloat(btn.dataset.basePrice || '0');
+                    const category = String(btn.dataset.category || '');
+
+                    // Adjust cake price based on selected weight if applicable
+                    const weight500 = document.getElementById('cake-weight-500g');
+                    const weight1kg = document.getElementById('cake-weight-1kg');
+                    if (weight500 || weight1kg) {
+                        const selected = document.querySelector('input[name="cake-weight"]:checked');
+                        if (selected) {
+                            const w = selected.value;
+                            name = name + ` (${w})`;
+                            const catLower = category.toLowerCase();
+                            if (w === '1kg') {
+                                price = price * (catLower === 'cake_500g' ? 2 : 1);
+                            } else {
+                                price = price * (catLower === 'cake_1kg' ? 0.5 : 1);
+                            }
+                        }
+                    }
+
+                    // Append selected teddy color if exists
+                    const activeColor = document.querySelector('.color-option.active');
+                    if (activeColor) {
+                        const color = activeColor.dataset.color;
+                        name = name + ` (${color})`;
+                    }
+                    addToCart(String(id), name, price, category);
+                });
+            }
+
+            // Color selection behavior (event delegation to avoid overlay issues)
+            const colorOptions = document.getElementById('colorOptions');
+            const mainImg = document.getElementById('productMainImage');
+            const variantsScript = document.getElementById('variantsData');
+            let variants = [];
+            try {
+                variants = variantsScript ? JSON.parse(variantsScript.textContent || '[]') : [];
+            } catch (e) {
+                variants = [];
+            }
+            const fallbackImage = mainImg ? String(mainImg.dataset.default || '') : '';
+            if (colorOptions && mainImg) {
+                colorOptions.addEventListener('click', (e) => {
+                    const colorBtn = e.target.closest('.color-option');
+                    if (!colorBtn) return;
+                    // prevent anchor overlays from stealing click
+                    e.preventDefault();
+                    e.stopPropagation();
+                    colorOptions.querySelectorAll('.color-option').forEach(b => b.classList.remove('active'));
+                    colorBtn.classList.add('active');
+                    const sel = variants.find(v => (String(v.color || '').toLowerCase() === String(colorBtn.dataset.color || '').toLowerCase()));
+                    if (sel && sel.image_url) {
+                        mainImg.src = sel.image_url;
+                    } else if (fallbackImage) {
+                        mainImg.src = fallbackImage;
+                    }
+                });
+                // Initialize first color as selected and update image
+                const firstBtn = colorOptions.querySelector('.color-option');
+                if (firstBtn && !colorOptions.querySelector('.color-option.active')) {
+                    firstBtn.classList.add('active');
+                    const firstColor = firstBtn.dataset.color || '';
+                    const sel = variants.find(v => (String(v.color || '').toLowerCase() === String(firstColor).toLowerCase()));
+                    if (sel && sel.image_url) {
+                        mainImg.src = sel.image_url;
+                    } else if (fallbackImage) {
+                        mainImg.src = fallbackImage;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+
