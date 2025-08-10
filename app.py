@@ -116,6 +116,30 @@ def home():
 def cart():
     return render_template('cart.html')
 
+@app.route('/product/<product_id>')
+def product_detail(product_id):
+    try:
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
+        if not product:
+            return redirect(url_for('home'))
+
+        # Normalize fields for template
+        product_ctx = {
+            'id': str(product.get('_id')),
+            'name': product.get('name', ''),
+            'category': product.get('category', ''),
+            'price': float(product.get('price', 0)),
+            'description': product.get('description', ''),
+            'image_url': product.get('image_url', ''),
+            'stock': int(product.get('stock', 0)),
+            'colors': product.get('colors', []),
+            'variants': product.get('variants', []),  # list of {color, image_url}
+        }
+        return render_template('product.html', product=product_ctx)
+    except Exception as e:
+        app.logger.error(f"Error loading product {product_id}: {str(e)}")
+        return redirect(url_for('home'))
+
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     try:
@@ -277,7 +301,9 @@ def get_products():
         'price': product['price'],
         'description': product['description'],
         'image_url': product['image_url'],
-        'stock': product['stock']
+        'stock': product['stock'],
+        'colors': product.get('colors', []),
+        'variants': product.get('variants', []),
     } for product in products])
 
 @app.route('/api/categories')
@@ -289,6 +315,32 @@ def get_public_categories():
         return jsonify({'success': True, 'categories': names})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/bestsellers')
+def get_bestsellers():
+    try:
+        # Get ALL products from MongoDB for featured section
+        all_products = list(products_collection.find())
+        
+        # Shuffle the products to get random order
+        import random
+        random.shuffle(all_products)
+        
+        # Return all products (they will be displayed in horizontal scroll)
+        return jsonify([{
+            'id': str(p['_id']),
+            'name': p.get('name'),
+            'category': p.get('category'),
+            'price': float(p.get('price', 0)),
+            'description': p.get('description', ''),
+            'image_url': p.get('image_url', ''),
+            'stock': int(p.get('stock', 0)),
+            'colors': p.get('colors', []),
+            'variants': p.get('variants', [])
+        } for p in all_products])
+    except Exception as e:
+        app.logger.error(f"Featured products error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to load featured products'}), 500
 
 # -------------------- Admin: Product & Category Management --------------------
 def ensure_admin_access():
@@ -368,7 +420,9 @@ def admin_products():
             'price': float(p.get('price', 0)),
             'description': p.get('description', ''),
             'image_url': p.get('image_url', ''),
-            'stock': int(p.get('stock', 0))
+            'stock': int(p.get('stock', 0)),
+            'colors': p.get('colors', []),
+            'variants': p.get('variants', [])
         } for p in products]})
 
     # POST - create product
@@ -384,7 +438,9 @@ def admin_products():
         'price': float(data['price']),
         'description': data['description'],
         'image_url': data['image_url'],
-        'stock': int(data.get('stock', 0))
+        'stock': int(data.get('stock', 0)),
+        'colors': data.get('colors', []),
+        'variants': data.get('variants', []),
     }
     result = products_collection.insert_one(product)
     return jsonify({'success': True, 'id': str(result.inserted_id)})
@@ -409,7 +465,7 @@ def admin_update_delete_product(product_id):
 
     # PUT - update one or more fields
     data = request.get_json() or {}
-    updatable_fields = {'name', 'category', 'price', 'description', 'image_url', 'stock'}
+    updatable_fields = {'name', 'category', 'price', 'description', 'image_url', 'stock', 'colors', 'variants'}
     update_data = {k: data[k] for k in updatable_fields if k in data}
     if 'price' in update_data:
         update_data['price'] = float(update_data['price'])
