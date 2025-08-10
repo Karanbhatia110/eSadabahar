@@ -70,7 +70,7 @@ function updateCartCount() {
     }
 }
 
-function addToCart(productId, name, price) {
+function addToCart(productId, name, price, category) {
     // Convert productId to string for consistent storage
     const stringProductId = String(productId);
     console.log('Adding to cart:', { productId, stringProductId, name, price });
@@ -85,7 +85,8 @@ function addToCart(productId, name, price) {
             id: stringProductId,
             name: name,
             price: price,
-            quantity: 1
+            quantity: 1,
+            ...(category ? { category: String(category) } : {})
         };
         cart.push(newItem);
         console.log('Added new item to cart:', newItem);
