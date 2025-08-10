@@ -17,7 +17,7 @@
         <span id="floatingCartCount" class="badge bg-primary">0</span>
     </a>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top" style="top: 0;">
         <div class="container">
             <a class="navbar-brand" href="/">eSadabahar</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -52,29 +52,130 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="mt-5 pt-5">
+    <main class="mt-3 pt-3">
         <!-- Hero Section -->
         <section class="hero-section text-center">
-            <div class="hero-overlay"></div>
-            <div class="container position-relative">
+            <div class="hero-background"></div>
+            <div class="container hero-content">
                 <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <h1 class="display-4 text-white mb-4">Welcome to eSadabahar</h1>
-                        <p class="lead text-white mb-4">Your one-stop shop for fresh flowers, cakes, chocolates, and more!</p>
-                        <div class="alert alert-success d-inline-block mb-4">
-                            <i class="fas fa-truck"></i> Same Day Delivery Available!
-                        </div>
-                        <div>
-                            <a href="#products" class="btn btn-primary btn-lg">Shop Now</a>
+                    <div class="col-md-10 col-lg-8">
+                        <h1 class="hero-title" style="animation: fadeUp .8s ease both">Discover Joy with eSadabahar</h1>
+                        <p class="hero-subtitle" style="animation: fadeUp 1s .1s ease both">Flowers, cakes, teddies and more — curated gifts delivered with care.</p>
+                        <div class="hero-buttons" style="animation: fadeUp 1.2s .2s ease both">
+                            <a href="#bestsellers" class="btn btn-primary hero-btn">Shop Featured</a>
+                            <a href="#products" class="btn btn-outline-light hero-btn">Browse All</a>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
+        <style>
+            @keyframes fadeUp { from { opacity:0; transform: translateY(10px);} to {opacity:1; transform:none;} }
+            
+            .featured-products-container {
+                overflow: hidden;
+                position: relative;
+                margin: 0 -15px;
+            }
+            
+            .featured-products-scroll {
+                display: flex;
+                gap: 20px;
+                padding: 20px 15px;
+                overflow-x: auto;
+                scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .featured-products-scroll::-webkit-scrollbar {
+                height: 8px;
+            }
+            
+            .featured-products-scroll::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 4px;
+            }
+            
+            .featured-products-scroll::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 4px;
+            }
+            
+            .featured-products-scroll::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+            
+            .featured-product-card {
+                min-width: 280px;
+                max-width: 280px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+                animation: slideInLeft 0.6s ease both;
+                opacity: 0;
+            }
+            
+            .featured-product-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+            
+            @keyframes slideInLeft {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            
+            .featured-product-card:nth-child(1) { animation-delay: 0.1s; }
+            .featured-product-card:nth-child(2) { animation-delay: 0.2s; }
+            .featured-product-card:nth-child(3) { animation-delay: 0.3s; }
+            .featured-product-card:nth-child(4) { animation-delay: 0.4s; }
+            .featured-product-card:nth-child(5) { animation-delay: 0.5s; }
+            .featured-product-card:nth-child(6) { animation-delay: 0.6s; }
+            .featured-product-card:nth-child(7) { animation-delay: 0.7s; }
+            .featured-product-card:nth-child(8) { animation-delay: 0.8s; }
+            
+            /* Ensure featured products are visible */
+            .featured-products-container {
+                min-height: 200px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 10px 0;
+            }
+            
+            .featured-product-card {
+                position: relative;
+                z-index: 1;
+            }
+            
+            .featured-product-card img {
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+                border-radius: 8px 8px 0 0;
+            }
+        </style>
+
         <!-- Products Section -->
         <section id="products" class="product-section">
             <div class="container">
+                <!-- Featured Products Section (Horizontal Scroll) -->
+                <div id="bestsellers" class="mb-5">
+                    <h2 class="section-title animate-fade-in">Featured Products</h2>
+                    <div class="featured-products-container">
+                        <div class="featured-products-scroll" id="bestsellers-container">
+                            <!-- Products will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Bouquets Section -->
                 <div id="bouquets" class="bouquets mb-5">
                     <h2 class="section-title animate-fade-in">Beautiful Bouquets</h2>
@@ -130,6 +231,17 @@
 
                 <!-- Dynamic Categories (auto-generated sections for new categories) -->
                 <div id="dynamic-categories" class="mb-5"></div>
+                
+                <!-- Enhanced Navbar for landing page -->
+                <div class="mt-4">
+                    <nav class="nav nav-pills justify-content-center gap-2">
+                        <a class="btn btn-outline-primary" href="#bouquets">Bouquets</a>
+                        <a class="btn btn-outline-primary" href="#cakes">Cakes</a>
+                        <a class="btn btn-outline-primary" href="#chocolates">Chocolates</a>
+                        <a class="btn btn-outline-primary" href="#plants">Plants</a>
+                        <a class="btn btn-outline-primary" href="#combos">Combos</a>
+                    </nav>
+                </div>
                 
             </div>
         </section>
@@ -254,9 +366,62 @@
                 console.error('Error fetching products:', error);
             });
 
+        // Load and render featured products
+        fetch('/api/bestsellers')
+            .then(r => r.json())
+            .then(items => {
+                if (!Array.isArray(items)) return;
+                console.log('Featured products loaded:', items.length);
+                const container = document.getElementById('bestsellers-container');
+                if (!container) return;
+                
+                // Filter out any products with empty or invalid names
+                const validProducts = items.filter(product => product.name && product.name.trim() !== '');
+                console.log('Valid products:', validProducts.length);
+                
+                container.innerHTML = validProducts.map(product => `
+                    <div class="featured-product-card">
+                        <div class="product-image-container">
+                            <a href="/product/${product.id}" class="text-decoration-none">
+                                <img src="${product.image_url || 'https://placehold.co/400x300?text=' + encodeURIComponent(product.name)}" 
+                                     class="product-image" 
+                                     alt="${product.name}"
+                                     onerror="this.onerror=null; this.src='https://placehold.co/400x300?text=' + encodeURIComponent('${product.name}')">
+                            </a>
+                        </div>
+                        <div class="product-info p-3">
+                            <h6 class="product-name mb-2"><a href="/product/${product.id}" class="text-dark text-decoration-none">${product.name}</a></h6>
+                            <p class="product-description small text-muted mb-2">${product.description || ''}</p>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="product-price fw-bold text-primary">₹${Number(product.price || 0).toFixed(2)}</span>
+                                ${product.stock && product.stock > 0 ? `
+                                    <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}" data-product-category="${product.category}">
+                                        <i class="fas fa-shopping-cart me-1"></i>Add
+                                    </button>
+                                ` : `
+                                    <span class="badge bg-secondary">Out of Stock</span>
+                                `}
+                            </div>
+                            ${Array.isArray(product.colors) && product.colors.length > 1 ? `
+                                <div class="mt-2">
+                                    <small class="text-primary"><i class="fas fa-palette me-1"></i>${product.colors.length} colors</small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            })
+            .catch((error) => {
+                console.error('Error loading featured products:', error);
+            });
+
         function renderProducts(products) {
+            console.log('Total products loaded:', products.length);
+            console.log('Product categories:', [...new Set(products.map(p => p.category))]);
+            
             // Render bouquets
             const bouquets = products.filter(product => product.category === 'bouquet');
+            console.log('Bouquets found:', bouquets.length);
             renderProductSection('bouquets', bouquets);
 
             // Render cakes - combine 500g and 1kg cakes
@@ -327,12 +492,14 @@
                     html += `
                         <div class="col-md-4 col-lg-3 ${productClass}" ${displayStyle}>
                             <div class="product-card">
-                                <img src="${product.image_url || 'https://placehold.co/400x300?text=' + encodeURIComponent(product.name)}" 
-                                     class="product-image" 
-                                     alt="${product.name}"
-                                     onerror="this.onerror=null; this.src='https://placehold.co/400x300?text=' + encodeURIComponent('${product.name}')">
+                                <a href="/product/${product.id}" class="text-decoration-none">
+                                    <img src="${product.image_url || 'https://placehold.co/400x300?text=' + encodeURIComponent(product.name)}" 
+                                         class="product-image" 
+                                         alt="${product.name}"
+                                         onerror="this.onerror=null; this.src='https://placehold.co/400x300?text=' + encodeURIComponent('${product.name}')">
+                                </a>
                                 <div class="product-info">
-                                    <h5 class="product-name">${product.name}</h5>
+                                    <h5 class="product-name"><a href="/product/${product.id}" class="stretched-link text-dark text-decoration-none">${product.name}</a></h5>
                                     <p class="product-description">${product.description}</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="product-price">₹${product.price.toFixed(2)}</span>
@@ -352,23 +519,35 @@
                     html += `
                         <div class="col-md-4 col-lg-3 ${productClass}" ${displayStyle}>
                             <div class="product-card">
-                                <img src="${product.image_url || 'https://placehold.co/400x300?text=' + encodeURIComponent(product.name)}" 
-                                     class="product-image" 
-                                     alt="${product.name}"
-                                     onerror="this.onerror=null; this.src='https://placehold.co/400x300?text=' + encodeURIComponent('${product.name}')">
+                                <a href="/product/${product.id}" class="text-decoration-none">
+                                    <img src="${product.image_url || 'https://placehold.co/400x300?text=' + encodeURIComponent(product.name)}" 
+                                         class="product-image" 
+                                         alt="${product.name}"
+                                         onerror="this.onerror=null; this.src='https://placehold.co/400x300?text=' + encodeURIComponent('${product.name}')">
+                                </a>
                                 <div class="product-info">
-                                    <h5 class="product-name">${product.name}</h5>
+                                    <h5 class="product-name"><a href="/product/${product.id}" class="stretched-link text-dark text-decoration-none">${product.name}</a></h5>
                                     <p class="product-description">${product.description}</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="product-price">₹${product.price.toFixed(2)}</span>
                                             ${product.stock && product.stock > 0 ? `
-                                                <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}">
+                                                <button class="btn btn-sm btn-primary add-to-cart-btn" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}" data-product-category="${product.category}">
                                                     <i class="fas fa-shopping-cart me-1"></i>Add
                                                 </button>
                                             ` : `
                                                 <span class="badge bg-secondary">Out of Stock</span>
                                             `}
                                     </div>
+                                    ${Array.isArray(product.colors) && product.colors.length > 1 ? `
+                                        <div class="mt-2">
+                                            <small class="text-primary"><i class="fas fa-palette me-1"></i>${product.colors.length} colors available</small>
+                                        </div>
+                                    ` : ''}
+                                    ${String(product.category || '').toLowerCase() === 'teddy' ? `
+                                        <div class="mt-2">
+                                            <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Expected delivery in 7–10 days</small>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -406,7 +585,9 @@
                         const productId = this.dataset.productId;
                         const productName = this.dataset.productName;
                         const productPrice = parseFloat(this.dataset.productPrice);
-                        addToCart(productId, productName, productPrice);
+                        const productCategory = String(this.dataset.productCategory || '').toLowerCase();
+
+                        addToCart(productId, productName, productPrice, productCategory);
                     });
                 });
             }
