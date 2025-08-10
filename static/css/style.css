@@ -103,8 +103,15 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
+    position: relative; /* needed for stretched-link to work properly */
 }
 
+.product-card .btn,
+.product-card .show-more-btn,
+.color-option {
+    position: relative;
+    z-index: 5; /* ensures these are above stretched-link and clickable */
+}
 .product-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
