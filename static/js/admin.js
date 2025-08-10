@@ -323,6 +323,10 @@ function openAddProductModal() {
     document.getElementById('productId').value = '';
     document.getElementById('productModalTitle').textContent = 'Add Product';
     fetchCategoriesAndPopulate();
+    // Ensure dynamic fields exist
+    ensureVariantControls();
+    // Reset colors/variants state to avoid carry-over between products
+    setColorsAndVariants([], []);
     setupImageInputs();
     if (!productModalInstance) {
         productModalInstance = new bootstrap.Modal(document.getElementById('productModal'));
@@ -337,6 +341,9 @@ function openEditProductModal(product) {
     document.getElementById('productDescription').value = product.description || '';
     document.getElementById('productImageUrl').value = product.image_url || '';
     document.getElementById('productStock').value = product.stock || 0;
+    // Populate variants/colors if present
+    ensureVariantControls();
+    setColorsAndVariants(product.colors || [], product.variants || []);
     document.getElementById('productModalTitle').textContent = 'Edit Product';
     fetchCategoriesAndPopulate(product.category);
     setupImageInputs(product.image_url || '');
@@ -354,7 +361,9 @@ function submitProductForm() {
         price: parseFloat(document.getElementById('productPrice').value),
         description: document.getElementById('productDescription').value.trim(),
         image_url: document.getElementById('productImageUrl').value.trim(),
-        stock: parseInt(document.getElementById('productStock').value || '0', 10)
+        stock: parseInt(document.getElementById('productStock').value || '0', 10),
+        colors: getColorsFromForm(),
+        variants: getVariantsFromForm()
     };
 
     if (!payload.name || !payload.category || isNaN(payload.price) || !payload.description || !payload.image_url) {
@@ -382,6 +391,121 @@ function submitProductForm() {
     .catch(err => alert('Failed to save product'));
 }
 
+// ---------- Variants/Colors Controls ----------
+function ensureVariantControls() {
+    const form = document.getElementById('productForm');
+    if (!form) return;
+    if (document.getElementById('colorsContainer')) return;
+
+    const container = document.createElement('div');
+    container.className = 'mb-3';
+    container.id = 'colorsContainer';
+    container.innerHTML = `
+        <label class="form-label">Colors (for teddies)</label>
+        <input type="text" id="colorsInput" class="form-control" placeholder="Comma separated, e.g. Red, Blue, Pink">
+        <div class="form-text">Optional. Add colors to enable color selection on product page.</div>
+        <div id="variantsContainer" class="mt-3">
+            <label class="form-label">Color Images (optional)</label>
+            <div id="variantRows"></div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addVariantBtn"><i class="fas fa-plus me-1"></i>Add Color Image</button>
+            <div class="form-text">Use these to override the main image per color.</div>
+        </div>
+    `;
+    form.insertBefore(container, document.getElementById('productStock').closest('.mb-3').nextSibling);
+
+    document.getElementById('addVariantBtn').addEventListener('click', addVariantRow);
+}
+
+function setColorsAndVariants(colors, variants) {
+    const colorsInput = document.getElementById('colorsInput');
+    if (colorsInput) colorsInput.value = (colors || []).join(', ');
+    const rows = document.getElementById('variantRows');
+    if (!rows) return;
+    rows.innerHTML = '';
+    (variants || []).forEach(v => addVariantRow(v.color || '', v.image_url || ''));
+}
+
+function addVariantRow(color = '', imageUrl = '') {
+    const rows = document.getElementById('variantRows');
+    if (!rows) return;
+    const row = document.createElement('div');
+    row.className = 'mb-2';
+    row.innerHTML = `
+        <div class="input-group">
+            <input type="text" class="form-control variant-color" placeholder="Color" value="${color}">
+            <input type="url" class="form-control variant-image-url" placeholder="Image URL" value="${imageUrl}">
+            <input type="file" class="form-control variant-image-file" accept="image/*" style="max-width: 40%">
+            <button class="btn btn-outline-danger variant-remove" type="button" title="Remove"><i class="fas fa-trash"></i></button>
+        </div>
+        <div class="mt-1">
+            <img class="img-thumbnail variant-preview" src="${imageUrl || ''}" alt="Preview" style="max-height: 50px; ${imageUrl ? '' : 'display:none;'}" />
+        </div>
+    `;
+    // Remove handler
+    row.querySelector('.variant-remove').addEventListener('click', () => row.remove());
+    // File upload handler
+    const fileInput = row.querySelector('.variant-image-file');
+    const urlInput = row.querySelector('.variant-image-url');
+    const preview = row.querySelector('.variant-preview');
+    if (fileInput) {
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            const form = new FormData();
+            form.append('file', file);
+            try {
+                const res = await fetch('/admin/api/upload', { method: 'POST', body: form });
+                const data = await res.json();
+                if (data && data.success && (data.url || data.local_url)) {
+                    const chosenUrl = data.url || data.local_url;
+                    if (urlInput) urlInput.value = chosenUrl;
+                    if (preview) {
+                        preview.src = chosenUrl;
+                        preview.style.display = 'inline-block';
+                    }
+                } else {
+                    alert((data && data.error) || 'Upload failed');
+                }
+            } catch (e) {
+                alert('Upload failed');
+            }
+        });
+    }
+    // URL input preview handler
+    if (urlInput) {
+        urlInput.addEventListener('input', () => {
+            const val = urlInput.value.trim();
+            if (val) {
+                preview.src = val;
+                preview.style.display = 'inline-block';
+            } else if (preview) {
+                preview.src = '';
+                preview.style.display = 'none';
+            }
+        });
+    }
+    rows.appendChild(row);
+}
+
+function getColorsFromForm() {
+    const input = document.getElementById('colorsInput');
+    if (!input) return [];
+    return input.value.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function getVariantsFromForm() {
+    const rows = document.querySelectorAll('#variantRows .input-group');
+    const list = [];
+    rows.forEach(r => {
+        const colorEl = r.querySelector('.variant-color');
+        const urlEl = r.querySelector('.variant-image-url');
+        const color = (colorEl && colorEl.value || '').trim();
+        const image_url = (urlEl && urlEl.value || '').trim();
+        if (color || image_url) list.push({ color, image_url });
+    });
+    return list;
+}
+
 function fetchAdminProducts() {
     fetch('/admin/api/products')
         .then(r => r.json())
@@ -398,7 +522,9 @@ function fetchAdminProducts() {
                         <td>${p.name}</td>
                         <td>${p.category}</td>
                         <td>₹${p.price.toFixed(2)}</td>
-                        <td>${stockBadge} <span class="ms-2 text-muted">(${p.stock})</span></td>
+                        <td>${stockBadge} <span class="ms-2 text-muted">(${p.stock})</span>
+                            ${Array.isArray(p.colors) && p.colors.length > 1 ? `<div class="small text-primary mt-1"><i class="fas fa-palette me-1"></i>${p.colors.length} colors</div>` : ''}
+                        </td>
                         <td class="text-nowrap">
                             <button class="btn btn-sm btn-primary me-1" data-action="edit"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-sm btn-${p.stock > 0 ? 'warning' : 'success'} me-1" data-action="toggle-stock">
@@ -408,7 +534,17 @@ function fetchAdminProducts() {
                         </td>
                     `;
                     tr.querySelector('[data-action="edit"]').addEventListener('click', () => openEditProductModal(p));
-                    tr.querySelector('[data-action="toggle-stock"]').addEventListener('click', () => toggleStock(p));
+                    tr.querySelector('[data-action="toggle-stock"]').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Toggle stock button clicked for product:', p);
+                        try {
+                            toggleStock(p);
+                        } catch (error) {
+                            console.error('Error in toggle stock event handler:', error);
+                            alert('Error toggling stock: ' + error.message);
+                        }
+                    });
                     tr.querySelector('[data-action="delete"]').addEventListener('click', () => deleteProduct(p));
                     tbody.appendChild(tr);
                 });
@@ -430,6 +566,7 @@ function fetchAdminProducts() {
                                     <div class="text-muted small mb-1">${p.category}</div>
                                     <div class="fw-semibold mb-2">₹${p.price.toFixed(2)}</div>
                                     <div>${stockBadge} <span class="ms-2 text-muted">(${p.stock})</span></div>
+                                    ${Array.isArray(p.colors) && p.colors.length > 1 ? `<div class="small text-primary mt-1"><i class="fas fa-palette me-1"></i>${p.colors.length} colors</div>` : ''}
                                 </div>
                                 <img src="${p.image_url || ''}" alt="${p.name}" class="rounded" style="width:72px;height:72px;object-fit:cover" onerror="this.style.display='none'">
                             </div>
@@ -453,18 +590,36 @@ function fetchAdminProducts() {
 }
 
 function toggleStock(p) {
+    console.log('Toggle stock called with product:', p);
+    console.log('Product ID:', p.id);
+    console.log('Current stock:', p.stock);
+    
     const newStock = p.stock > 0 ? 0 : 1;
+    console.log('New stock will be:', newStock);
+    
     fetch(`/admin/api/products/${p.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock })
     })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) fetchAdminProducts();
-        else alert(data.error || 'Failed to update stock');
+    .then(r => {
+        console.log('Response status:', r.status);
+        return r.json();
     })
-    .catch(() => alert('Failed to update stock'));
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            console.log('Stock updated successfully, refreshing products...');
+            fetchAdminProducts();
+        } else {
+            console.error('Failed to update stock:', data.error);
+            alert(data.error || 'Failed to update stock');
+        }
+    })
+    .catch((error) => {
+        console.error('Error updating stock:', error);
+        alert('Failed to update stock');
+    });
 }
 
 function deleteProduct(p) {
