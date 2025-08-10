@@ -77,9 +77,13 @@
                                     <label for="pincode" class="form-label">Pincode</label>
                                     <input type="text" class="form-control" id="pincode" name="pincode" required>
                                 </div>
-                                <div class="mb-3">
+                                <div id="delivery-date-wrapper" class="mb-3">
                                     <label for="delivery_date" class="form-label">Delivery Date</label>
                                     <input type="date" class="form-control" id="delivery_date" name="delivery_date" required>
+                                </div>
+                                <div id="teddy-delivery-note" class="alert alert-info mb-3" style="display:none;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Expected delivery for teddy items is between 7 to 10 days from order date.
                                 </div>
                                 <div class="mb-3">
                                     <label for="instruction" class="form-label">Special Instructions (Optional)</label>
@@ -159,14 +163,34 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Set minimum date to today
+        // Set minimum date to today (default for non-teddy carts)
         const today = new Date();
         const minDate = today.toISOString().split('T')[0];
-        document.getElementById('delivery_date').min = minDate;
+        const deliveryDateInput = document.getElementById('delivery_date');
+        const deliveryDateWrapper = document.getElementById('delivery-date-wrapper');
+        const teddyNote = document.getElementById('teddy-delivery-note');
+        if (deliveryDateInput) {
+            deliveryDateInput.min = minDate;
+        }
 
         // Initialize cart from localStorage
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
         updateOrderSummary();
+
+        // Teddy delivery handling
+        const hasTeddy = Array.isArray(cart) && cart.some(i => String(i.name || '').toLowerCase().includes('teddy') || String(i.category || '').toLowerCase() === 'teddy');
+        const onlyTeddy = hasTeddy && cart.every(i => String(i.name || '').toLowerCase().includes('teddy') || String(i.category || '').toLowerCase() === 'teddy');
+        if (hasTeddy && teddyNote) teddyNote.style.display = 'block';
+        if (onlyTeddy) {
+            if (deliveryDateWrapper) deliveryDateWrapper.style.display = 'none';
+            if (deliveryDateInput) {
+                const tenDays = new Date();
+                tenDays.setDate(tenDays.getDate() + 10);
+                const tenDaysStr = tenDays.toISOString().split('T')[0];
+                deliveryDateInput.value = tenDaysStr;
+                deliveryDateInput.required = false;
+            }
+        }
 
         function updateOrderSummary() {
             const orderSummary = document.getElementById('order-summary');
@@ -222,6 +246,25 @@
             `;
 
             document.getElementById('total_amount').value = total;
+
+            // Re-evaluate teddy presence after any quantity change and reflect UI
+            const hasTeddyNow = Array.isArray(cart) && cart.some(i => String(i.name || '').toLowerCase().includes('teddy') || String(i.category || '').toLowerCase() === 'teddy');
+            const onlyTeddyNow = hasTeddyNow && cart.every(i => String(i.name || '').toLowerCase().includes('teddy') || String(i.category || '').toLowerCase() === 'teddy');
+
+            if (hasTeddyNow && teddyNote) teddyNote.style.display = 'block';
+
+            if (onlyTeddyNow) {
+                if (deliveryDateWrapper) deliveryDateWrapper.style.display = 'none';
+                if (deliveryDateInput && !deliveryDateInput.value) {
+                    const tenDays = new Date();
+                    tenDays.setDate(tenDays.getDate() + 10);
+                    deliveryDateInput.value = tenDays.toISOString().split('T')[0];
+                }
+                if (deliveryDateInput) deliveryDateInput.required = false;
+            } else {
+                if (deliveryDateWrapper) deliveryDateWrapper.style.display = '';
+                if (deliveryDateInput) deliveryDateInput.required = true;
+            }
         }
 
         // Function to update quantity (will be called from main.js)
