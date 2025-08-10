@@ -163,88 +163,69 @@
             }
         </style>
 
-        <!-- Products Section -->
-        <section id="products" class="product-section">
-            <div class="container">
-                <!-- Featured Products Section (Horizontal Scroll) -->
-                <div id="bestsellers" class="mb-5">
-                    <h2 class="section-title animate-fade-in">Featured Products</h2>
-                    <div class="featured-products-container">
-                        <div class="featured-products-scroll" id="bestsellers-container">
-                            <!-- Products will be loaded here -->
+            <section id="products" class="product-section">
+                <div class="container">
+                    <!-- Bouquets Section -->
+                    <div id="bouquets" class="bouquets mb-5">
+                        <h2 class="section-title animate-fade-in">Beautiful Bouquets</h2>
+                        <div class="row g-4" id="bouquets-container">
+                            <!-- Bouquet products will be dynamically added here -->
+                        </div>
+                        <div class="text-center mt-4" id="bouquets-show-more-container" style="display: none;">
+                            <button class="btn btn-outline-primary show-more-btn" data-category="bouquets">Show More</button>
                         </div>
                     </div>
-                </div>
 
-                <!-- Bouquets Section -->
-                <div id="bouquets" class="bouquets mb-5">
-                    <h2 class="section-title animate-fade-in">Beautiful Bouquets</h2>
-                    <div class="row g-4" id="bouquets-container">
-                        <!-- Bouquet products will be dynamically added here -->
+                    <!-- Cakes Section -->
+                    <div id="cakes" class="cakes mb-5">
+                        <h2 class="section-title animate-fade-in">Delicious Cakes</h2>
+                        <div class="row g-4" id="cakes-container">
+                            <!-- Cake products will be dynamically added here -->
+                        </div>
+                        <div class="text-center mt-4" id="cakes-show-more-container" style="display: none;">
+                            <button class="btn btn-outline-primary show-more-btn" data-category="cakes">Show More</button>
+                        </div>
                     </div>
-                    <div class="text-center mt-4" id="bouquets-show-more-container" style="display: none;">
-                        <button class="btn btn-outline-primary show-more-btn" data-category="bouquets">Show More</button>
-                    </div>
-                </div>
 
-                <!-- Cakes Section -->
-                <div id="cakes" class="cakes mb-5">
-                    <h2 class="section-title animate-fade-in">Delicious Cakes</h2>
-                    <div class="row g-4" id="cakes-container">
-                        <!-- Cake products will be dynamically added here -->
+                    <!-- Chocolates Section -->
+                    <div id="chocolates" class="chocolates mb-5">
+                        <h2 class="section-title animate-fade-in">Sweet Chocolates</h2>
+                        <div class="row g-4" id="chocolates-container">
+                            <!-- Chocolate products will be dynamically added here -->
+                        </div>
+                        <div class="text-center mt-4" id="chocolates-show-more-container" style="display: none;">
+                            <button class="btn btn-outline-primary show-more-btn" data-category="chocolates">Show More</button>
+                        </div>
                     </div>
-                    <div class="text-center mt-4" id="cakes-show-more-container" style="display: none;">
-                        <button class="btn btn-outline-primary show-more-btn" data-category="cakes">Show More</button>
-                    </div>
-                </div>
 
-                <!-- Chocolates Section -->
-                <div id="chocolates" class="chocolates mb-5">
-                    <h2 class="section-title animate-fade-in">Sweet Chocolates</h2>
-                    <div class="row g-4" id="chocolates-container">
-                        <!-- Chocolate products will be dynamically added here -->
-                    </div>
-                    <div class="text-center mt-4" id="chocolates-show-more-container" style="display: none;">
-                        <button class="btn btn-outline-primary show-more-btn" data-category="chocolates">Show More</button>
-                    </div>
-                </div>
+                    <!-- Plants Section -->
+                    <div id="plants" class="plants mb-5">
+                        <h2 class="section-title animate-fade-in">Beautiful Plants</h2>
+                        <div class="row g-4" id="plants-container">
+                            <!-- Plant products will be dynamically added here -->
 
-                <!-- Plants Section -->
-                <div id="plants" class="plants mb-5">
-                    <h2 class="section-title animate-fade-in">Beautiful Plants</h2>
-                    <div class="row g-4" id="plants-container">
-                        <!-- Plant products will be dynamically added here -->
-                            
+                        </div>
                     </div>
-                </div>
 
-                <!-- Combos Section -->
-                <div id="combos" class="combos mb-5">
-                    <h2 class="section-title animate-fade-in">Special Combos</h2>
-                    <div class="row g-4" id="combos-container">
-                        <!-- Combo products will be dynamically added here -->
+                    <!-- Combos Section -->
+                    <div id="combos" class="combos mb-5">
+                        <h2 class="section-title animate-fade-in">Special Combos</h2>
+                        <div class="row g-4" id="combos-container">
+                            <!-- Combo products will be dynamically added here -->
+                        </div>
+                        <div class="text-center mt-4" id="combos-show-more-container" style="display: none;">
+                            <button class="btn btn-outline-primary show-more-btn" data-category="combos">Show More</button>
+                        </div>
                     </div>
-                    <div class="text-center mt-4" id="combos-show-more-container" style="display: none;">
-                        <button class="btn btn-outline-primary show-more-btn" data-category="combos">Show More</button>
-                    </div>
-                </div>
 
-                <!-- Dynamic Categories (auto-generated sections for new categories) -->
-                <div id="dynamic-categories" class="mb-5"></div>
+                    <!-- Dynamic Categories (auto-generated sections for new categories) -->
+                    <div id="dynamic-categories" class="mb-5"></div>
+
+                </div>
+            </section>
                 
-                <!-- Enhanced Navbar for landing page -->
-                <div class="mt-4">
-                    <nav class="nav nav-pills justify-content-center gap-2">
-                        <a class="btn btn-outline-primary" href="#bouquets">Bouquets</a>
-                        <a class="btn btn-outline-primary" href="#cakes">Cakes</a>
-                        <a class="btn btn-outline-primary" href="#chocolates">Chocolates</a>
-                        <a class="btn btn-outline-primary" href="#plants">Plants</a>
-                        <a class="btn btn-outline-primary" href="#combos">Combos</a>
-                    </nav>
-                </div>
                 
-            </div>
-        </section>
+         
 
         <!-- Cake Weight Selection Modal -->
         <div class="modal fade" id="cakeWeightModal" tabindex="-1">
@@ -418,6 +399,7 @@
         function renderProducts(products) {
             console.log('Total products loaded:', products.length);
             console.log('Product categories:', [...new Set(products.map(p => p.category))]);
+            console.log('Sample product:', products[0]);
             
             // Render bouquets
             const bouquets = products.filter(product => product.category === 'bouquet');
@@ -474,9 +456,12 @@
             attachShowMoreListeners();
         }
 
-            function renderProductSection(category, products) {
+        function renderProductSection(category, products) {
+            console.log(`Rendering ${category} section with ${products.length} products`);
             const container = document.getElementById(`${category}-container`);
             const showMoreContainer = document.getElementById(`${category}-show-more-container`);
+            console.log(`Container for ${category}:`, container);
+            console.log(`Show more container for ${category}:`, showMoreContainer);
             
             if (products.length === 0) {
                 container.innerHTML = '<div class="col-12"><p>No products available in this category.</p></div>';
@@ -485,12 +470,11 @@
 
             let html = '';
             products.forEach((product, index) => {
-                const displayStyle = index >= 4 ? 'style="display: none;"' : '';
                 const productClass = index >= 4 ? 'product-card-container hidden' : 'product-card-container';
                 
                 if (category === 'cakes') {
                     html += `
-                        <div class="col-md-4 col-lg-3 ${productClass}" ${displayStyle}>
+                        <div class="col-md-4 col-lg-3 ${productClass}">
                             <div class="product-card">
                                 <a href="/product/${product.id}" class="text-decoration-none">
                                     <img src="${product.image_url || 'https://placehold.co/400x300?text=' + encodeURIComponent(product.name)}" 
@@ -517,7 +501,7 @@
                     `;
                 } else {
                     html += `
-                        <div class="col-md-4 col-lg-3 ${productClass}" ${displayStyle}>
+                        <div class="col-md-4 col-lg-3 ${productClass}">
                             <div class="product-card">
                                 <a href="/product/${product.id}" class="text-decoration-none">
                                     <img src="${product.image_url || 'https://placehold.co/400x300?text=' + encodeURIComponent(product.name)}" 
@@ -585,28 +569,39 @@
                         const productId = this.dataset.productId;
                         const productName = this.dataset.productName;
                         const productPrice = parseFloat(this.dataset.productPrice);
-                        const productCategory = String(this.dataset.productCategory || '').toLowerCase();
-
-                        addToCart(productId, productName, productPrice, productCategory);
+                        addToCart(productId, productName, productPrice);
                     });
                 });
             }
         }
 
         function attachShowMoreListeners() {
-            document.querySelectorAll('.show-more-btn').forEach(button => {
-                if (button._showMoreBound) return;
-                button._showMoreBound = true;
-                button.addEventListener('click', function() {
-                    const category = this.dataset.category;
-                    const cards = document.querySelectorAll(`#${category} .product-card-container.hidden`);
-                    cards.forEach(card => {
-                        card.style.display = card.style.display === 'none' ? 'block' : 'none';
-                    });
-                    this.textContent = this.textContent === 'Show More' ? 'Show Less' : 'Show More';
-                });
-            });
-        }
+    document.querySelectorAll('.show-more-btn').forEach(button => {
+        if (button._showMoreBound) return;
+        button._showMoreBound = true;
+        button.type = 'button'; // avoid accidental submit
+
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const category = this.dataset.category;
+            const container = document.getElementById(`${category}-container`);
+            if (!container) return;
+
+            const hiddenCards = container.querySelectorAll('.product-card-container.hidden');
+            const showing = this.textContent.trim() === 'Show Less';
+
+            if (showing) {
+                hiddenCards.forEach(c => c.classList.remove('visible'));
+                this.textContent = 'Show More';
+            } else {
+                hiddenCards.forEach(c => c.classList.add('visible'));
+                this.textContent = 'Show Less';
+            }
+        });
+    });
+}
 
         function toSectionId(name) {
             return 'cat-' + String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
