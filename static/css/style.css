@@ -7,29 +7,31 @@ body {
 
 /* Hero Section */
 .hero-section {
-    background-image: url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 80vh;
+    min-height: 15vh;
     display: flex;
     align-items: center;
     position: relative;
-    margin-top: 0;
-    padding-top: 76px;
+    background-image: url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+    padding-top: 80px;
+    margin-top: 20px;
+    z-index: 10;
 }
 
-.hero-overlay {
+.hero-background {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+    width: 100%;
+    height: 100%;
+    background: url('/static/images/Real Logo.png') center/10% no-repeat;
+    filter: blur(50px) opacity(0.06);
+    transform: scale(0.3);
+    z-index: 1;
 }
 
-.hero-section .container {
-    z-index: 2;
+.hero-content {
+    position: relative;
+    z-index: 12;
 }
 
 .hero-title {
@@ -45,6 +47,26 @@ body {
     color: #fff;
     margin-bottom: 2rem;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.hero-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.hero-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.hero-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Product Sections */
@@ -724,6 +746,67 @@ main {
         display: none !important;
     }
 
+} 
+ 
+
+
+/* Fix for invisible teddy products behind hero section */
+.hero-section {
+    min-height: 15vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    background-image: url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+    padding-top: 80px;
+    margin-top: 20px;
+    z-index: 10;
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('/static/images/Real Logo.png') center/10% no-repeat;
+    filter: blur(50px) opacity(0.06);
+    transform: scale(0.3);
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 12;
+}
+
+/* Ensure product sections don't overlap with hero */
+.product-section, 
+[id^="cat-"], 
+.bouquets, 
+.cakes, 
+.chocolates, 
+.plants, 
+.combos {
+    position: relative;
+    z-index: 5;
+    margin-top: 2rem;
+}
+
+/* Hide any invisible products that might be causing issues */
+.product-card-container.hidden,
+.product-card[style*="display: none"] {
+    display: none !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* Ensure featured products are properly positioned */
+.featured-products-container {
+    position: relative;
+    z-index: 5;
+    margin-top: 2rem;
 } 
  
 
