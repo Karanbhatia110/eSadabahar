@@ -708,9 +708,10 @@ def verify_payment():
             send_email('esadabaharorders@gmail.com', f'New Order #{str(order["_id"])} - eSadabahar', admin_email_body)
         
         return jsonify({
-            'success': True, 
-            'message': 'Payment verified'
-        })
+           'success': True,
+           'redirect_url': url_for('order_confirmed', order_id=str(order['_id']), _external=True)
+            })
+
         
     except razorpay.errors.SignatureVerificationError:
         return jsonify({'success': False, 'message': 'Invalid signature'}), 400
@@ -749,9 +750,15 @@ def webhook():
         app.logger.error(f"Webhook error: {str(e)}")
         return jsonify({'error': str(e)}), 400
 
-@app.route('/order-confirmed')
-def order_confirmed():
-    return render_template('order-confirmed.html')
+@app.route('/order-confirmed/<order_id>')
+def order_confirmed(order_id):
+    order = orders_collection.find_one({'_id': ObjectId(order_id)})
+
+    if not order or order.get("payment_status") != "completed":
+        return redirect(url_for("home"))
+
+    return render_template("order-confirmed.html", order=order)
+
 
 @app.route('/test-email')
 def test_email():
