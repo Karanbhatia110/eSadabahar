@@ -320,7 +320,12 @@ async function handlePaymentSuccess(response) {
             localStorage.removeItem('currentOrder');
             
             // Redirect to order confirmed page
-            window.location.href = '/order-confirmed';
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                window.location.href = '/';
+            }
+            
         } else {
             showNotification(data.message || 'Payment verification failed', 'danger');
             // Optionally reopen payment if verification fails
